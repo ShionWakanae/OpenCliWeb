@@ -52,14 +52,51 @@ class IntelligentCLIAgent:
             - **opencli_execute**: 执行任意完整命令
             - **opencli_list**: 列出所有可用的网站名称
 
-            ## 工作流程
-            1 不知道或不确定网站名称,先列出支持的网站进行判断：
-            opencli_list()
+            ## 网站选择规则：
+            1.
+            如果用户明确使用标准网站名：
+            bilibili
+            zhihu
+            github
 
-            2 已知网站名称后，先获取该网站的命令帮助：
+            直接：
             opencli_help(site)
 
-            3 找到子命令后，执行该命令：
+            2.
+            如果用户使用别名、简称、中文名称：
+            B站
+            知乎
+            新浪财经
+            微博
+            小红书
+
+            先：
+            opencli_list()
+
+            找到最匹配的网站名后：
+            opencli_help(site)
+
+            3.
+            禁止猜测网站名称。
+            如果无法确认，必须先 list。
+
+            例子：
+
+            "B站热门"
+            → bilibili
+            → help
+
+            "新浪财经新闻"
+            → list
+            → sinafinance
+            → help
+
+            "微博热搜"
+            → list
+            → weibo
+            → help
+
+            4 找到子命令后，执行该命令：
             opencli_execute(...)
 
             ## 规则：
@@ -198,18 +235,6 @@ class IntelligentCLIAgent:
                     }
 
             await handler
-
-            # if hasattr(response, "response"):
-            #     text = response.response
-            #     if not isinstance(text, str):
-            #         if hasattr(text, "content"):
-            #             text = text.content
-            #         else:
-            #             text = str(text)
-            #     yield {
-            #         "type": "token",
-            #         "text": text,
-            #     }
 
         except Exception as e:
             yield {

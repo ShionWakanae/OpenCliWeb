@@ -34,8 +34,12 @@ class OpenCLITool:
     """把 opencli 命令封装成可调用的工具函数"""
 
     def __init__(
-        self, profile: Optional[str] = None, verbose: bool = False, timeout: int = 90, on_execute=None,
-):
+        self,
+        profile: Optional[str] = None,
+        verbose: bool = False,
+        timeout: int = 90,
+        on_execute=None,
+    ):
         self.on_execute = on_execute
         self.profile = profile
         self.verbose = verbose
@@ -173,8 +177,14 @@ class OpenCLITool:
         )
 
         # 2. 执行任意命令
-        def execute_command(subcommand: str) -> Dict:
+        def execute_command(subcommand: str, limit: int | None = None) -> Dict:
             """执行 opencli 子命令"""
+
+            try:
+                limit = int(limit) if limit is not None else None
+            except (TypeError, ValueError):
+                limit = None
+
             prefixes = (
                 "opencli ",
                 "cmd ",
@@ -184,16 +194,36 @@ class OpenCLITool:
                 if subcommand.startswith(p):
                     subcommand = subcommand[len(p) :]
             result = self._execute_command(subcommand, format_json=True)
+            try:
+                # 后处理 limit
+                if limit and result.success and result.data is not None:
+                    # 数组
+                    if isinstance(result.data, list):
+                        result.data = result.data[:limit]
+                    # {"items":[...]}
+                    elif isinstance(result.data, dict) and isinstance(
+                        result.data.get("items"),
+                        list,
+                    ):
+                        result.data["items"] = result.data["items"][:limit]
+            except Exception as e:
+                print(f"后处理 limit 时出错: {e}")
+                if self.verbose:
+                    print(traceback.format_exc())
+
             return result.to_dict()
 
         self._function_tools["opencli_execute"] = self._create_function_tool(
             name="opencli_execute",
             description=dedent("""\
-                执行某个网站命令。
+                ## subcommand 参数
+                执行某个网站命令
+                格式:
+                subcommand=<网站名> <命令>
 
-                输入：
-                bilibili history
-                zhihu hot
+                比如:
+                subcommand=bilibili history
+                subcommand=zhihu hot
 
                 不要输入：
                 opencli
@@ -202,6 +232,10 @@ class OpenCLITool:
                 json
 
                 系统会自动补充。
+
+                ## limit(整数) 参数，可选。限制返回结果的数量。
+                例如：
+                limit=10
             """),
             fn=execute_command,
         )
