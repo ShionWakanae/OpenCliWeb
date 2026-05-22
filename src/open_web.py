@@ -789,7 +789,14 @@ def main():
                             msg = f"({event['stage']})"
                             if kwargs:
                                 msg += f" {kwargs}"
-                            msg_str = f"- **[工具]** {event['message']} {msg}"
+                            text_content = event["text_content"]
+                            if text_content:
+                                text_content = (
+                                    '"'
+                                    + event["text_content"].replace("\n", " ")[:50]
+                                    + '"...'
+                                )
+                            msg_str = f"- **[工具]** {event['tool_name']} {msg} {text_content}"
                             log(msg_str)
                             partial_text += msg_str + "\n"
                             rendered_html = render_markdown_html(partial_text)

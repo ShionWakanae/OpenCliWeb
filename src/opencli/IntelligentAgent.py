@@ -48,9 +48,26 @@ class IntelligentCLIAgent:
 
             ## 可用工具
             你可以使用以下工具来获取信息或操作浏览器：
+            - **get_today_date**: 获取当天日期
             - **opencli_help**: 获取网站命令帮助（当你不确定时使用）
             - **opencli_execute**: 执行任意完整命令
             - **opencli_list**: 列出所有可用的网站名称
+
+            ## 日期规则：
+            1. 
+            如果用户输入了明确的日期，则不必调用 get_today_date 工具。
+
+            2，
+            如果用户提到类似'今天'，'明天'等不确定的日期，
+            则调用 get_today_date 工具。
+            并计算出用户真实希望的日期字符串。
+            供后续命令使用。
+
+            3，
+            如果用户输入信息中没有日期内容，
+            但发现在后续命令中需要日期，
+            则调用 get_today_date 工具，
+            并使用当天日期。
 
             ## 网站选择规则：
             1.
@@ -212,19 +229,27 @@ class IntelligentCLIAgent:
             async for event in handler.stream_events():
                 # 工具开始
                 if hasattr(event, "tool_name") and event.tool_name:
+                    text_content = ""
                     if hasattr(event, "tool_kwargs"):
                         kwargs = event.tool_kwargs
                     else:
                         kwargs = {}
                     if hasattr(event, "tool_output"):
-                        stage = "output"
+                        stage = "out"
+                        if hasattr(event, "tool_output"):
+                            toolOutput = event.tool_output
+                            if toolOutput.blocks:
+                                text_content = getattr(
+                                    toolOutput.blocks[0], "text", None
+                                )
                     else:
-                        stage = "input"
+                        stage = "in"
                     yield {
                         "type": "tool",
-                        "message": f"{event.tool_name}",
+                        "tool_name": f"{event.tool_name}",
                         "stage": stage,
                         "kwargs": kwargs,
+                        "text_content": text_content,
                     }
                     # print(event)
                 # token

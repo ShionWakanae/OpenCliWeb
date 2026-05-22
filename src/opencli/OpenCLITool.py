@@ -6,6 +6,7 @@ from typing import Dict, Any, List, Callable, Optional
 from dataclasses import dataclass
 import traceback
 import re
+from datetime import date
 from textwrap import dedent
 from llama_index.core.tools import FunctionTool
 
@@ -262,6 +263,22 @@ class OpenCLITool:
                 查看命令请调用 opencli_help。
             """),
             fn=list_commands,
+        )
+
+        # 12. 获取当天日期
+        def get_today_date() -> str:
+            """获取当天日期"""
+            return date.today().strftime("%Y-%m-%d")
+
+        self._function_tools["get_today_date"] = self._create_function_tool(
+            name="get_today_date",
+            description=dedent("""\
+                获取当天日期。
+
+                返回：
+                格式为 yyyy-mm-dd 的日期字符串，例如：2026-05-23
+            """),
+            fn=get_today_date,
         )
 
     def get_all_tools(self) -> List[FunctionTool]:
