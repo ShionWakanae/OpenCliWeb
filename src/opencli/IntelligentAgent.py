@@ -113,7 +113,8 @@ class IntelligentCLIAgent:
             - 不要重复调用帮助
 
             ## 输出格式
-            - 返回数据后，用友好的方式向用户展示结果, 结果有链接的一定要包括链接
+            - 返回数据后，用友好的方式向用户展示结果（Markdown格式，避免表格）
+            - 不要隐藏结果项目，结果有链接的必须包括链接
             - 如果工具返回错误，解释可能的原因并给出建议
             """)
 
@@ -212,7 +213,7 @@ class IntelligentCLIAgent:
 
                 yield {
                     "type": "tool",
-                    "stage": "in",
+                    "stage": "→",
                     "tool_name": name,
                     "message": name,
                     "kwargs": args,
@@ -237,7 +238,7 @@ class IntelligentCLIAgent:
 
                 yield {
                     "type": "tool",
-                    "stage": "out",
+                    "stage": "←",
                     "tool_name": name,
                     "message": name,
                     "kwargs": args,

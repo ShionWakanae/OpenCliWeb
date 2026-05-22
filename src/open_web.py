@@ -787,24 +787,28 @@ def main():
                         elif event["type"] == "tool":
                             tool_name = event.get("tool_name")
                             kwargs = event.get("kwargs")
-                            stage = event.get("stage")
-                            if stage == "in" and kwargs:
-                                stage += f" {kwargs}"
+                            stage = f"{event.get('stage')}"
+                            if stage == "→" and kwargs:
+                                stage = f"{stage} {kwargs}"
 
                             text_content = event.get("text_content")
+                            text_content_with_format = ""
                             if tool_name == "opencli_list":
                                 text_content = ""
                             if text_content:
                                 text_content = (
-                                    ' :"'
-                                    + text_content.replace("\n", " ")[:50]
-                                    + '..."'
+                                    text_content.replace("\n", " ")[:50] + "..."
                                 )
+                                text_content_with_format = (
+                                    f" [bold bright_blue]{text_content}[/]"
+                                )
+                                text_content = f" {text_content}"
                             msg_str = (
-                                f"- **[工具]** {tool_name} ({stage}){text_content}"
+                                f"[工具] {tool_name} {stage}{text_content_with_format}"
                             )
                             log(msg_str)
-                            partial_text += msg_str + "\n"
+                            ui_str = f"- **[工具]** {tool_name} {stage}{text_content}"
+                            partial_text += ui_str + "\n"
                             rendered_html = render_markdown_html(partial_text)
                             assistant_message.content = rendered_html
                             assistant_message.update()
@@ -832,7 +836,9 @@ def main():
 
                     # fallback
                     if not got_answer:
-                        partial_text = "对不起，我检索了资料，但还是不知道答案……"
+                        partial_text = (
+                            "对不起，我不知道哪里出了问题，无法完成你的要求……"
+                        )
 
                     atime = f"🕐{datetime.datetime.now().strftime('%H:%M:%S')}"
                     total_ms = timing.get("total_ms", 0)
