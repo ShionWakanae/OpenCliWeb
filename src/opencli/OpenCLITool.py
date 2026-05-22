@@ -193,7 +193,9 @@ class OpenCLITool:
             for p in prefixes:
                 if subcommand.startswith(p):
                     subcommand = subcommand[len(p) :]
-            result = self._execute_command(subcommand, format_json=True)
+            result = self._execute_command(
+                f"{subcommand} --window background", format_json=True
+            )
             try:
                 # 后处理 limit
                 if limit and result.success and result.data is not None:
