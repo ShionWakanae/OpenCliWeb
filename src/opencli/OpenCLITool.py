@@ -112,8 +112,8 @@ class OpenCLITool:
                 try:
                     data = json.loads(result.stdout)
                 except json.JSONDecodeError as e:
-                    print(f"JSON解析失败: {e}")
-                    print(result.stdout[:1000])
+                    print(f"回退到原始输出，JSON解析失败: {e}")
+                    print(result.stdout[:100], "......")
                     if self.verbose:
                         print(traceback.format_exc())
 
