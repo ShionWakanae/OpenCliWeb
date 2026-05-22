@@ -241,3 +241,4 @@ class IntelligentCLIAgent:
                 "type": "token",
                 "text": str(e),
             }
+            print(traceback.format_exc())

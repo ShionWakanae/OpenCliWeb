@@ -1,11 +1,7 @@
-import sys
 import asyncio
 import datetime
 from pathlib import Path
-import threading
-from queue import Queue
 import traceback
-import time
 import markdown
 from nicegui import ui
 from nicegui import app
@@ -738,23 +734,13 @@ def main():
                                     )
                                     auto_scroll_chat(client)
 
-                            sources_container = (
-                                ui.row().classes("gap-0 mt-0 mb-0").style("width: 95%;")
-                            )
-                            action_container = ui.row().classes("gap-2 mt-0 mb-0")
-                            auto_scroll_chat(client)
-
                     # state
-                    source_nodes = []
-                    event_source = "none"
                     got_answer = False
-                    answer_source = ""
                     first_token = False
                     first_trace = False
                     timing = {}
                     # consume
                     accumulated = ""
-                    streaming_start = time.perf_counter()
                     async for event in service.stream_answer(message):
                         if event is None:
                             break
@@ -764,7 +750,6 @@ def main():
                             got_answer = True
                             if not first_token:
                                 log("Streaming...")
-                                streaming_start = time.perf_counter()
                                 partial_text = ""
                                 first_token = True
                                 if assistant_stage_spinner:
@@ -820,28 +805,10 @@ def main():
 
                         # status
                         elif event["type"] == "status":
-                            event_source = event["source"]
-                            answer_source = event_source
                             got_answer = event["got_answer"]
-                            if event.get("need_rag_confirm"):
-                                show_inline_rag_confirm(
-                                    event.get("original_question"),
-                                    action_container,
-                                    client,
-                                )
-                            if event.get("need_force_rag_confirm"):
-                                show_inline_force_rag_confirm(
-                                    event.get("original_question"),
-                                    action_container,
-                                    client,
-                                )
 
                     if accumulated:
                         partial_text += accumulated
-                    streaming_s = round(
-                        (time.perf_counter() - streaming_start),
-                        2,
-                    )
                     log("Answer completed")
                     log("----------------")
                     log(
