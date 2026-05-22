@@ -50,7 +50,7 @@ def logout():
 
 app.add_static_files("/static/js", "./src/ui/js")
 app.add_static_files("/static/css", "./src/ui/css")
-app.add_static_files("/static/images", "./images")
+app.add_static_files("/static/images", "./res")
 
 
 def render_markdown_html(md_str: str, class_name: str = "final-markdown") -> str:
