@@ -65,7 +65,7 @@ class OpenCLIService:
         yield {
             "type": "trace",
             "stage": "开始",
-            "message": "分析用户意图",
+            "message": "收到用户指令并开始处理……",
             "timing": 0,
         }
         total_answer = 0

@@ -400,11 +400,11 @@ def main():
                 """):
                     quick_questions = [
                         "目前B站上最热门的5条视频是？",
-                        "我的B站的观看历史。",
-                        "我的B站的收藏夹。",
-                        "我的B站的动态详情。",
-                        "我的小红书的通知。",
-                        "小红书上关于PIU的视频。",
+                        "我的B站的观看历史",
+                        "我的B站的收藏夹",
+                        "我的B站的动态详情",
+                        "我的小红书的通知",
+                        "小红书上关于PIU跳舞机的内容",
                         "抖音的官方活动列表",
                     ]
 
@@ -785,18 +785,24 @@ def main():
 
                         # sources
                         elif event["type"] == "tool":
+                            tool_name = event.get("tool_name")
                             kwargs = event.get("kwargs")
-                            msg = f"({event['stage']})"
-                            if kwargs:
-                                msg += f" {kwargs}"
-                            text_content = event["text_content"]
+                            stage = event.get("stage")
+                            if stage == "in" and kwargs:
+                                stage += f" {kwargs}"
+
+                            text_content = event.get("text_content")
+                            if tool_name == "opencli_list":
+                                text_content = ""
                             if text_content:
                                 text_content = (
-                                    '"'
-                                    + event["text_content"].replace("\n", " ")[:50]
-                                    + '"...'
+                                    ' :"'
+                                    + text_content.replace("\n", " ")[:50]
+                                    + '..."'
                                 )
-                            msg_str = f"- **[工具]** {event['tool_name']} {msg} {text_content}"
+                            msg_str = (
+                                f"- **[工具]** {tool_name} ({stage}){text_content}"
+                            )
                             log(msg_str)
                             partial_text += msg_str + "\n"
                             rendered_html = render_markdown_html(partial_text)
