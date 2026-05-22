@@ -1,61 +1,74 @@
-# opencli_tool.py
 import subprocess
 import json
 import shlex
-from typing import Dict, Any, List, Callable, Optional
-from dataclasses import dataclass
 import traceback
 import re
 from datetime import date
 from textwrap import dedent
-from llama_index.core.tools import FunctionTool
+from dataclasses import dataclass
+from typing import Any
+import asyncio
 
 
 @dataclass
 class CommandResult:
-    """命令执行结果"""
-
     success: bool
     stdout: str = ""
     stderr: str = ""
-    data: Any = None  # 解析后的 JSON 数据
+    data: Any = None
     command: str = ""
     error: str = ""
 
-    def to_dict(self) -> Dict:
+    def to_dict(self):
+        payload = self.data
+        if payload is None:
+            payload = self.stdout
+
         return {
             "success": self.success,
-            "data": self.data if self.data else self.stdout,
+            "data": payload,
             "error": self.error,
             "command": self.command,
         }
 
 
 class OpenCLITool:
-    """把 opencli 命令封装成可调用的工具函数"""
-
-    def __init__(
-        self,
-        profile: Optional[str] = None,
-        verbose: bool = False,
-        timeout: int = 90,
-        on_execute=None,
-    ):
-        self.on_execute = on_execute
+    def __init__(self, profile=None, verbose=False, timeout=90, on_execute=None):
         self.profile = profile
         self.verbose = verbose
         self.timeout = timeout
+        self.on_execute = on_execute
         self.base_args = ["opencli"]
-
         if profile:
-            self.base_args.extend(["--profile", profile])
+            self.base_args.extend(
+                [
+                    "--profile",
+                    profile,
+                ]
+            )
 
-        # 工具注册表
-        self._function_tools = {}
+        self._functions = {}
+        self._schemas = {}
         self._register_all_tools()
 
-    def _execute_command(self, command: str, format_json: bool = True) -> CommandResult:
-        """执行 opencli 命令"""
+    # execute
+    async def _execute_command_async(
+        self,
+        command,
+        format_json=True,
+    ):
+        return await asyncio.to_thread(
+            self._execute_command,
+            command,
+            format_json,
+        )
+
+    def _execute_command(
+        self,
+        command,
+        format_json=True,
+    ):
+
         cmd = [
             "cmd",
             "/c",
@@ -63,99 +76,115 @@ class OpenCLITool:
             *shlex.split(command),
         ]
 
-        # 默认添加 json 格式
         if format_json and "-f" not in command and "--format" not in command:
-            cmd.extend(["-f", "json"])
+            cmd.extend(
+                [
+                    "-f",
+                    "json",
+                ]
+            )
 
         if self.on_execute:
             self.on_execute(
                 {
                     "type": "tool",
+                    "message": command,
                     "stage": "execute",
                     "command": command,
                 }
             )
+
         try:
             if self.verbose:
-                print(f"[OpenCLI] 执行: {' '.join(cmd)}")
+                print("[OpenCLI]", cmd)
 
             result = subprocess.run(
                 cmd,
                 shell=False,
                 capture_output=True,
-                text=True,
                 timeout=self.timeout,
-                check=False,
                 encoding="utf-8",
+                text=True,
             )
+
             if self.on_execute:
                 self.on_execute(
                     {
                         "type": "tool",
+                        "message": command,
                         "stage": "finished",
                         "command": command,
                         "success": result.returncode == 0,
                     }
                 )
-            if self.verbose:
-                print(result)
+
             if result.returncode != 0:
                 return CommandResult(
                     success=False,
-                    stderr=result.stderr,
                     command=" ".join(cmd),
-                    error=f"Exit code {result.returncode}: {result.stderr}",
+                    stderr=result.stderr,
+                    error=result.stderr,
                 )
 
-            # 尝试解析 JSON
             data = None
             if format_json and result.stdout.strip():
                 try:
                     data = json.loads(result.stdout)
-                except json.JSONDecodeError as e:
-                    print(f"回退到原始输出，JSON解析失败: {e}")
-                    print(result.stdout[:100], "......")
+                except Exception:
                     if self.verbose:
                         print(traceback.format_exc())
 
             return CommandResult(
                 success=True,
+                command=" ".join(cmd),
                 stdout=result.stdout,
                 stderr=result.stderr,
                 data=data,
-                command=" ".join(cmd),
             )
 
         except subprocess.TimeoutExpired:
             return CommandResult(
                 success=False,
-                error=f"命令执行超时 ({self.timeout}秒)",
-                command=" ".join(cmd),
+                error=f"命令执行超时({self.timeout}s)",
             )
+
         except Exception as e:
             if self.verbose:
                 print(traceback.format_exc())
-            return CommandResult(success=False, error=str(e), command=" ".join(cmd))
 
-    def _create_function_tool(
-        self, name: str, description: str, fn: Callable
-    ) -> FunctionTool:
-        """创建 FunctionTool"""
-        return FunctionTool.from_defaults(fn=fn, name=name, description=description)
+            return CommandResult(
+                success=False,
+                error=str(e),
+            )
 
+    # register
+    def register(self, *, name, description, schema, fn):
+        self._functions[name] = fn
+        self._schemas[name] = {
+            "type": "function",
+            "function": {
+                "name": name,
+                "description": description,
+                "parameters": schema,
+            },
+        }
+
+    # tools
     def _register_all_tools(self):
-        """注册所有 opencli 工具"""
 
-        # 1. 获取帮助信息
-        def get_help(command: str) -> str:
-            """获取 opencli 命令的帮助信息"""
+        # help
+        def opencli_help(command):
             command = command.replace("_", " ")
-            result = self._execute_command(f"{command} --help", format_json=False)
-            if result.success:
-                return result.stdout
-            return f"无法获取帮助: {result.error}"
+            r = self._execute_command(
+                f"{command} --help",
+                format_json=False,
+            )
+            if r.success:
+                return r.stdout
 
-        self._function_tools["opencli_help"] = self._create_function_tool(
+            return r.error
+
+        self.register(
             name="opencli_help",
             description=dedent("""\
                 查看某个网站支持哪些操作。
@@ -174,47 +203,61 @@ class OpenCLITool:
                 返回：
                 该网站支持的子命令列表。
             """),
-            fn=get_help,
+            schema={
+                "type": "object",
+                "properties": {"command": {"type": "string"}},
+                "required": ["command"],
+            },
+            fn=opencli_help,
         )
 
-        # 2. 执行任意命令
-        def execute_command(subcommand: str, limit: int | None = None) -> Dict:
-            """执行 opencli 子命令"""
-
+        # execute
+        def opencli_execute(subcommand, limit=None):
             try:
                 limit = int(limit) if limit is not None else None
             except (TypeError, ValueError):
                 limit = None
 
-            prefixes = (
+            for p in (
                 "opencli ",
                 "cmd ",
                 "cmd /c ",
-            )
-            for p in prefixes:
+            ):
                 if subcommand.startswith(p):
                     subcommand = subcommand[len(p) :]
-            result = self._execute_command(f"{subcommand}", format_json=True)
+
+            r = self._execute_command(
+                subcommand,
+                True,
+            )
+            result = r.to_dict()
             try:
-                # 后处理 limit
-                if limit and result.success and result.data is not None:
-                    # 数组
-                    if isinstance(result.data, list):
-                        result.data = result.data[:limit]
-                    # {"items":[...]}
-                    elif isinstance(result.data, dict) and isinstance(
-                        result.data.get("items"),
+                data = result["data"]
+                if limit and isinstance(
+                    data,
+                    list,
+                ):
+                    result["data"] = data[:limit]
+                elif (
+                    limit
+                    and isinstance(
+                        data,
+                        dict,
+                    )
+                    and isinstance(
+                        data.get("items"),
                         list,
-                    ):
-                        result.data["items"] = result.data["items"][:limit]
+                    )
+                ):
+                    data["items"] = data["items"][:limit]
+
             except Exception as e:
-                print(f"后处理 limit 时出错: {e}")
+                print(f"处理 limit 时出错: {e}")
                 if self.verbose:
                     print(traceback.format_exc())
+            return result
 
-            return result.to_dict()
-
-        self._function_tools["opencli_execute"] = self._create_function_tool(
+        self.register(
             name="opencli_execute",
             description=dedent("""\
                 ## subcommand 参数
@@ -238,39 +281,52 @@ class OpenCLITool:
                 例如：
                 limit=10
             """),
-            fn=execute_command,
+            schema={
+                "type": "object",
+                "properties": {
+                    "subcommand": {"type": "string"},
+                    "limit": {"type": "integer"},
+                },
+                "required": ["subcommand"],
+            },
+            fn=opencli_execute,
         )
 
-        # 11. 列出所有可用命令
-        def list_commands():
-            result = self._execute_command("list", format_json=False)
-            if not result.success:
-                return result.error
+        # list
+        def opencli_list():
+            r = self._execute_command("list", False)
+            if not r.success:
+                return r.error
 
             sites = []
-            for line in result.stdout.splitlines():
-                # 只保留一级命令
-                if re.match(r"^  \S+\s*$", line):
+            for line in r.stdout.splitlines():
+                if re.match(
+                    r"^  \S+\s*$",
+                    line,
+                ):
                     sites.append(line.strip())
 
             return "\n".join(sites)
 
-        self._function_tools["opencli_list"] = self._create_function_tool(
+        self.register(
             name="opencli_list",
             description=dedent("""\
                 仅列出支持的网站。
                 不要用来查看具体命令。
                 查看命令请调用 opencli_help。
             """),
-            fn=list_commands,
+            schema={
+                "type": "object",
+                "properties": {},
+            },
+            fn=opencli_list,
         )
 
-        # 12. 获取当天日期
-        def get_today_date() -> str:
-            """获取当天日期"""
+        # date
+        def get_today_date():
             return date.today().strftime("%Y-%m-%d")
 
-        self._function_tools["get_today_date"] = self._create_function_tool(
+        self.register(
             name="get_today_date",
             description=dedent("""\
                 获取当天日期。
@@ -278,13 +334,19 @@ class OpenCLITool:
                 返回：
                 格式为 yyyy-mm-dd 的日期字符串，例如：2026-05-23
             """),
+            schema={
+                "type": "object",
+                "properties": {},
+            },
             fn=get_today_date,
         )
 
-    def get_all_tools(self) -> List[FunctionTool]:
-        """获取所有注册的工具"""
-        return list(self._function_tools.values())
+    # api
+    def get_tools(self):
+        return list(self._schemas.values())
 
-    def get_tool_by_name(self, name: str) -> Optional[FunctionTool]:
-        """根据名称获取工具"""
-        return self._function_tools.get(name)
+    def execute(self, name, args):
+        if name not in self._functions:
+            raise Exception(f"未知工具:{name}")
+
+        return self._functions[name](**args)

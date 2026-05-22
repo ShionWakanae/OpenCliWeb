@@ -1,47 +1,35 @@
 import asyncio
-from typing import Optional, Generator
+import json
 import traceback
+from typing import Optional
 from textwrap import dedent
-from llama_index.core.agent.workflow import FunctionAgent
+from openai import AsyncOpenAI
 from opencli.OpenCLITool import OpenCLITool
 
 
 class IntelligentCLIAgent:
-    """
-    智能 CLI Agent，基于 llama_index 的 FunctionAgent
-    自动判断用户意图并调用相应的 OpenCLI 工具
-    """
-
     def __init__(
         self,
-        llm,
+        client: AsyncOpenAI,
+        model: str,
         opencli_tool: Optional[OpenCLITool] = None,
-        verbose: bool = False,
+        verbose=False,
     ):
-        self.llm = llm
+
+        self.client = client
+        self.model = model
         self.verbose = verbose
         self.opencli_tool = opencli_tool or OpenCLITool(verbose=verbose)
+        self.tools = self.opencli_tool.get_tools()
+        if verbose:
+            print(f"[Agent] loaded {len(self.tools)} tools")
+            for t in self.tools:
+                print("-", t["function"]["name"])
 
-        # 获取所有工具
-        self.tools = self.opencli_tool.get_all_tools()
-
-        if self.verbose:
-            print(f"[Agent] 已加载 {len(self.tools)} 个工具:")
-            for tool in self.tools:
-                print(f"  - {tool.metadata.name}: {tool.metadata.description}")
-
-        # 创建 FunctionAgent
-        self.agent = FunctionAgent(
-            name="OpenCLIAgent",
-            description="能够操作各种网站和浏览器的智能助手",
-            system_prompt=self._get_system_prompt(),
-            tools=self.tools,
-            llm=self.llm,
-            can_use_self_service_panel=False,
-            verbose=verbose,
-        )
-
-    def _get_system_prompt(self) -> str:
+    # prompt
+    def _get_system_prompt(
+        self,
+    ):
         """获取系统提示词"""
         return dedent("""\
             你是一个智能助手，能够使用 OpenCLI 工具来操作各种网站。
@@ -129,141 +117,184 @@ class IntelligentCLIAgent:
             - 如果工具返回错误，解释可能的原因并给出建议
             """)
 
-    def chat(self, message: str) -> str:
-        """
-        与 Agent 对话，自动调用工具完成任务
-
-        Args:
-            message: 用户输入的消息
-
-        Returns:
-            Agent 的回复内容
-        """
-        try:
-            # 关键修改：使用 asyncio.run() 来运行异步的 agent.run
-            # 创建新的事件循环来执行
-            response = asyncio.run(self.agent.run(user_msg=message))
-
-            if self.verbose:
-                print(f"[Agent] Response: {response}")
-
-            # 提取响应文本
-            if hasattr(response, "response"):
-                return response.response
-            elif isinstance(response, str):
-                return response
-            else:
-                return str(response)
-
-        except Exception as e:
-            error_msg = f"处理请求时出错: {str(e)}"
-            if self.verbose:
-                print(traceback.format_exc())
-            return error_msg
-
-    async def achat(self, message: str) -> str:
-        """
-        与 Agent 对话，自动调用工具完成任务（异步版本）
-
-        Args:
-            message: 用户输入的消息
-
-        Returns:
-            Agent 的回复内容
-        """
-        try:
-            response = await self.agent.run(user_msg=message)
-            # print("=========")
-            # print("RESPONSE=", repr(response))
-            if hasattr(response, "response"):
-                return response.response
-            elif isinstance(response, str):
-                return response
-            else:
-                return str(response)
-
-        except Exception as e:
-            error_msg = f"处理请求时出错: {str(e)}"
-            if self.verbose:
-                print(traceback.format_exc())
-
-            return error_msg
-
-    def stream(self, message: str) -> Generator[str, None, None]:
-        """流式对话"""
-        try:
-            # 使用 asyncio.run 运行异步生成器
-            async def async_stream():
-                async for chunk in self.agent.stream(user_msg=message):
-                    if hasattr(chunk, "response") and chunk.response:
-                        yield chunk.response
-                    elif isinstance(chunk, str):
-                        yield chunk
-
-            # 运行异步生成器并同步消费
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                gen = async_stream()
-                while True:
-                    try:
-                        chunk = loop.run_until_complete(gen.__anext__())
-                        yield chunk
-                    except StopAsyncIteration:
-                        break
-            finally:
-                loop.close()
-
-        except Exception as e:
-            yield f"处理请求时出错: {str(e)}"
-
-    async def astream(
+    # internal
+    async def _run(
         self,
         message,
     ):
-        try:
-            handler = self.agent.run(
-                user_msg=message,
+        messages = [
+            {
+                "role": "system",
+                "content": self._get_system_prompt(),
+            },
+            {
+                "role": "user",
+                "content": message,
+            },
+        ]
+
+        MAX_TOOL = 15
+        for _ in range(MAX_TOOL):
+            stream = await self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                tools=self.tools,
+                tool_choice="auto",
+                temperature=0.1,
+                stream=True,
             )
 
-            async for event in handler.stream_events():
-                # 工具开始
-                if hasattr(event, "tool_name") and event.tool_name:
-                    text_content = ""
-                    if hasattr(event, "tool_kwargs"):
-                        kwargs = event.tool_kwargs
-                    else:
-                        kwargs = {}
-                    if hasattr(event, "tool_output"):
-                        stage = "out"
-                        if hasattr(event, "tool_output"):
-                            toolOutput = event.tool_output
-                            if toolOutput.blocks:
-                                text_content = getattr(
-                                    toolOutput.blocks[0], "text", None
-                                )
-                    else:
-                        stage = "in"
-                    yield {
-                        "type": "tool",
-                        "tool_name": f"{event.tool_name}",
-                        "stage": stage,
-                        "kwargs": kwargs,
-                        "text_content": text_content,
-                    }
-                    # print(event)
-                # token
-                if hasattr(event, "delta") and event.delta:
+            content = ""
+            tool_calls = {}
+            async for chunk in stream:
+                delta = chunk.choices[0].delta
+                # 普通文本
+                if delta.content:
+                    content += delta.content
                     yield {
                         "type": "token",
-                        "text": event.delta,
+                        "text": delta.content,
                     }
 
-            await handler
+                # tool call
+                if delta.tool_calls:
+                    for tc in delta.tool_calls:
+                        idx = tc.index
 
-        except Exception as e:
+                        if idx not in tool_calls:
+                            tool_calls[idx] = {
+                                "id": "",
+                                "name": "",
+                                "args": "",
+                            }
+                        if tc.id:
+                            tool_calls[idx]["id"] += tc.id
+                        if tc.function:
+                            if tc.function.name:
+                                tool_calls[idx]["name"] += tc.function.name
+                            if tc.function.arguments:
+                                tool_calls[idx]["args"] += tc.function.arguments
+
+            # finish
+            if not tool_calls:
+                yield {
+                    "type": "done",
+                    "text": content,
+                }
+                return
+
+            # assistant（只追加一次）
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": content,
+                    "tool_calls": [
+                        {
+                            "id": tc["id"],
+                            "type": "function",
+                            "function": {
+                                "name": tc["name"],
+                                "arguments": tc["args"],
+                            },
+                        }
+                        for tc in tool_calls.values()
+                    ],
+                }
+            )
+
+            # tool
+            for tc in tool_calls.values():
+                name = tc["name"]
+                try:
+                    args = json.loads(tc["args"] or "{}")
+                except:
+                    args = {}
+
+                yield {
+                    "type": "tool",
+                    "stage": "in",
+                    "tool_name": name,
+                    "message": name,
+                    "kwargs": args,
+                    "text_content": "",
+                }
+
+                try:
+                    result = await asyncio.to_thread(
+                        self.opencli_tool.execute, name, args
+                    )
+
+                except Exception as e:
+                    result = {
+                        "success": False,
+                        "error": str(e),
+                    }
+
+                text = json.dumps(
+                    result,
+                    ensure_ascii=False,
+                )
+
+                yield {
+                    "type": "tool",
+                    "stage": "out",
+                    "tool_name": name,
+                    "message": name,
+                    "kwargs": args,
+                    "text_content": text,
+                }
+
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tc["id"],
+                        "content": text,
+                    }
+                )
+
+        raise Exception("tool loop overflow")
+
+    # public
+    def chat(self, message):
+        return asyncio.run(self.achat(message))
+
+    async def achat(self, message):
+        try:
+            answer = ""
+            async for event in self._run(message):
+                if event["type"] == "token":
+                    answer += event["text"]
+            return answer
+
+        except Exception:
+            if self.verbose:
+                print(traceback.format_exc())
+            raise
+
+    def stream(self, message):
+        async def collect():
+            async for event in self.astream(message):
+                if event["type"] == "token":
+                    yield (event["text"])
+
+        loop = asyncio.new_event_loop()
+        try:
+            gen = collect()
+            while True:
+                try:
+                    yield (loop.run_until_complete(gen.__anext__()))
+                except StopAsyncIteration:
+                    break
+        finally:
+            loop.close()
+
+    async def astream(self, message):
+        try:
+            async for event in self._run(message):
+                yield event
+
+        except Exception:
             yield {
                 "type": "token",
-                "text": str(e),
+                "text": traceback.format_exc(),
             }
-            print(traceback.format_exc())
