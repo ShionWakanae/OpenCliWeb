@@ -792,23 +792,22 @@ def main():
                                 stage = f"{stage} {kwargs}"
 
                             text_content = event.get("text_content")
-                            text_content_with_format = ""
+                            text_content_with_format = text_content
+
+                            prefix = f"- **[工具]** {tool_name} {stage}"
                             if tool_name == "opencli_list":
                                 text_content = ""
+                                text_content_with_format = ""
                             if text_content:
                                 text_content = (
-                                    text_content.replace("\n", " ")[:50] + "..."
+                                    text_content.replace("\n", " ")[:60] + "..."
                                 )
                                 text_content_with_format = (
                                     f" [bold bright_blue]{text_content}[/]"
                                 )
                                 text_content = f" {text_content}"
-                            msg_str = (
-                                f"[工具] {tool_name} {stage}{text_content_with_format}"
-                            )
-                            log(msg_str)
-                            ui_str = f"- **[工具]** {tool_name} {stage}{text_content}"
-                            partial_text += ui_str + "\n"
+                            log(f"{prefix}{text_content_with_format}")
+                            partial_text += f"{prefix}{text_content}" + "\n"
                             rendered_html = render_markdown_html(partial_text)
                             assistant_message.content = rendered_html
                             assistant_message.update()
