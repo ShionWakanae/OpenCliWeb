@@ -1,6 +1,7 @@
 nicegui>=3.11.0
 openai
 rich
+pyyaml
 python-dotenv
 markdown
 pymdown-extensions
