@@ -47,7 +47,7 @@ class OpenCLIService:
             log(f"[Service] node.js version: {r.stdout.strip()}", False)
 
         # check opencli version
-        r = self._cli_tool._execute_opencli_command("--version", format_json=False)
+        r = self._cli_tool._execute_opencli_command("--version")
         if not r.success:
             log(r.error, False)
             log(
@@ -59,7 +59,7 @@ class OpenCLIService:
             log(f"[Service] opencli version: {r.stdout.strip()}", False)
 
         # opencli doctor
-        r = self._cli_tool._execute_opencli_command("doctor", format_json=False)
+        r = self._cli_tool._execute_opencli_command("doctor")
         if not r.success:
             log(r.error, False)
             log(

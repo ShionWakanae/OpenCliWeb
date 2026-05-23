@@ -107,7 +107,7 @@ class IntelligentCLIAgent:
             ## 规则：
             不要拼 opencli
             不要拼 cmd
-            不要加 -f json
+            不要加 -f 某格式
 
             ## 禁止：
             - 不要重复调用帮助

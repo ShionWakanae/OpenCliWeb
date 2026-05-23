@@ -1,5 +1,6 @@
 import subprocess
 import json
+import yaml
 import shlex
 import traceback
 import re
@@ -7,7 +8,6 @@ from datetime import date
 from textwrap import dedent
 from dataclasses import dataclass
 from typing import Any
-import asyncio
 
 
 @dataclass
@@ -16,6 +16,7 @@ class CommandResult:
     stdout: str = ""
     stderr: str = ""
     data: Any = None
+    data_format: str = ""
     command: str = ""
     error: str = ""
 
@@ -50,18 +51,6 @@ class OpenCLITool:
         self._functions = {}
         self._schemas = {}
         self._register_all_tools()
-
-    # execute
-    # async def _execute_command_async(
-    #     self,
-    #     command,
-    #     format_json=True,
-    # ):
-    #     return await asyncio.to_thread(
-    #         self._execute_opencli_command,
-    #         command,
-    #         format_json,
-    #     )
 
     def _execute_any_command(
         self,
@@ -122,23 +111,12 @@ class OpenCLITool:
     def _execute_opencli_command(
         self,
         command,
-        format_json=True,
+        format_output="",
     ):
-
-        cmd = [
-            "cmd",
-            "/c",
-            *self.base_args,
-            *shlex.split(command),
-        ]
-
-        if format_json and "-f" not in command and "--format" not in command:
-            cmd.extend(
-                [
-                    "-f",
-                    "json",
-                ]
-            )
+        format_output = format_output.lower()
+        cmd = ["cmd", "/c", *self.base_args, *shlex.split(command)]
+        if format_output and "-f" not in command and "--format" not in command:
+            cmd.extend(["-f", format_output])
 
         if self.on_execute:
             self.on_execute(
@@ -183,9 +161,12 @@ class OpenCLITool:
                 )
 
             data = None
-            if format_json and result.stdout.strip():
+            if format_output and result.stdout.strip():
                 try:
-                    data = json.loads(result.stdout)
+                    if format_output == "json":
+                        data = json.loads(result.stdout)
+                    if format_output == "yaml":
+                        data = yaml.safe_load(result.stdout)
                 except Exception:
                     if self.verbose:
                         print(traceback.format_exc())
@@ -196,6 +177,7 @@ class OpenCLITool:
                 stdout=result.stdout,
                 stderr=result.stderr,
                 data=data,
+                data_format=format_output,
             )
 
         except subprocess.TimeoutExpired:
@@ -231,10 +213,7 @@ class OpenCLITool:
         # help
         def opencli_help(command):
             command = command.replace("_", " ")
-            r = self._execute_opencli_command(
-                f"{command} --help",
-                format_json=False,
-            )
+            r = self._execute_opencli_command(f"{command} --help", format_output="yaml")
             if r.success:
                 return r.stdout
 
@@ -246,7 +225,7 @@ class OpenCLITool:
                 查看某个网站支持哪些操作。
 
                 输入：
-                网站名
+                网站名(site)
 
                 例如：
                 bilibili
@@ -257,7 +236,8 @@ class OpenCLITool:
                 cmd /c
 
                 返回：
-                该网站支持的子命令列表。
+                该网站支持的子命令列表
+                包括每个子命令是否支持(limit)参数。
             """),
             schema={
                 "type": "object",
@@ -268,11 +248,11 @@ class OpenCLITool:
         )
 
         # execute
-        def opencli_execute(subcommand, limit=None):
+        def opencli_execute(subcommand, result_limit: int | None = None):
             try:
-                limit = int(limit) if limit is not None else None
+                result_limit = int(result_limit) if result_limit is not None else None
             except (TypeError, ValueError):
-                limit = None
+                result_limit = None
 
             for p in (
                 "opencli ",
@@ -282,20 +262,17 @@ class OpenCLITool:
                 if subcommand.startswith(p):
                     subcommand = subcommand[len(p) :]
 
-            r = self._execute_opencli_command(
-                subcommand,
-                True,
-            )
+            r = self._execute_opencli_command(subcommand, format_output="yaml")
             result = r.to_dict()
             try:
                 data = result["data"]
-                if limit and isinstance(
+                if result_limit and isinstance(
                     data,
                     list,
                 ):
-                    result["data"] = data[:limit]
+                    result["data"] = data[:result_limit]
                 elif (
-                    limit
+                    result_limit
                     and isinstance(
                         data,
                         dict,
@@ -305,10 +282,10 @@ class OpenCLITool:
                         list,
                     )
                 ):
-                    data["items"] = data["items"][:limit]
+                    data["items"] = data["items"][:result_limit]
 
             except Exception as e:
-                print(f"处理 limit 时出错: {e}")
+                print(f"处理 result_limit 时出错: {e}")
                 if self.verbose:
                     print(traceback.format_exc())
             return result
@@ -316,32 +293,40 @@ class OpenCLITool:
         self.register(
             name="opencli_execute",
             description=dedent("""\
-                ## subcommand 参数
-                执行某个网站命令
+                ## subcommand
+                执行某个网站命令,由网站(site)和命令(command)组成，中间有1个空格。
                 格式:
-                subcommand=<网站名> <命令>
+                <site> <command>
+                如果subcommand支持 <limit> 参数，且用户指定了限制条数，则格式:
+                <site> <command> --limit=(条数)
 
                 比如:
-                subcommand=bilibili history
-                subcommand=zhihu hot
+                subcommand = bilibili history
+                subcommand = zhihu hot --limit=5
 
                 不要输入：
                 opencli
                 cmd
-                -f
-                json
-
+                -f 格式
                 系统会自动补充。
 
-                ## limit(整数) 参数，可选。限制返回结果的数量。
+                不要输入subcommand字符串本身，比如:
+                subcommand = subcommand = bilibili history
+
+                ## result_limit(整数) 参数
+                # 可选。限制返回结果的数量。
+                
+                如果subcommand本身不支持 <limit> 参数，但用户指定了限制条数，则:
+                使用 result_limit 参数。
+                
                 例如：
-                limit=10
+                result_limit=10
             """),
             schema={
                 "type": "object",
                 "properties": {
                     "subcommand": {"type": "string"},
-                    "limit": {"type": "integer"},
+                    "result_limit": {"type": "integer"},
                 },
                 "required": ["subcommand"],
             },
@@ -350,7 +335,7 @@ class OpenCLITool:
 
         # list
         def opencli_list():
-            r = self._execute_opencli_command("list", False)
+            r = self._execute_opencli_command("list")
             if not r.success:
                 return r.error
 
