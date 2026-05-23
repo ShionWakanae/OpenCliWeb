@@ -143,6 +143,16 @@ class IntelligentCLIAgent:
                 tool_choice="auto",
                 temperature=0.1,
                 stream=True,
+                extra_body={
+                    "chat_template_kwargs": {
+                        "enable_thinking": False,
+                    },
+                    "enable_thinking": False,
+                    "thinking": {
+                        "type": "disabled",
+                    },
+                },
+                max_tokens=8192,
             )
 
             content = ""
