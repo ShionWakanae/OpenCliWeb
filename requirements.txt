@@ -1,0 +1,6 @@
+nicegui>=3.11.0
+openai
+rich
+python-dotenv
+markdown
+pymdown-extensions
