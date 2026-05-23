@@ -52,18 +52,74 @@ class OpenCLITool:
         self._register_all_tools()
 
     # execute
-    async def _execute_command_async(
+    # async def _execute_command_async(
+    #     self,
+    #     command,
+    #     format_json=True,
+    # ):
+    #     return await asyncio.to_thread(
+    #         self._execute_opencli_command,
+    #         command,
+    #         format_json,
+    #     )
+
+    def _execute_any_command(
         self,
         command,
-        format_json=True,
     ):
-        return await asyncio.to_thread(
-            self._execute_command,
-            command,
-            format_json,
-        )
 
-    def _execute_command(
+        cmd = [
+            "cmd",
+            "/c",
+            *shlex.split(command),
+        ]
+
+        try:
+            if self.verbose:
+                print("[npm]", cmd)
+
+            result = subprocess.run(
+                cmd,
+                shell=False,
+                capture_output=True,
+                timeout=self.timeout,
+                encoding="utf-8",
+                text=True,
+            )
+
+            if result.returncode != 0:
+                return CommandResult(
+                    success=False,
+                    command=" ".join(cmd),
+                    stderr=result.stderr,
+                    error=result.stderr,
+                )
+
+            data = None
+            return CommandResult(
+                success=True,
+                command=" ".join(cmd),
+                stdout=result.stdout,
+                stderr=result.stderr,
+                data=data,
+            )
+
+        except subprocess.TimeoutExpired:
+            return CommandResult(
+                success=False,
+                error=f"命令执行超时({self.timeout}s)",
+            )
+
+        except Exception as e:
+            if self.verbose:
+                print(traceback.format_exc())
+
+            return CommandResult(
+                success=False,
+                error=str(e),
+            )
+
+    def _execute_opencli_command(
         self,
         command,
         format_json=True,
@@ -175,7 +231,7 @@ class OpenCLITool:
         # help
         def opencli_help(command):
             command = command.replace("_", " ")
-            r = self._execute_command(
+            r = self._execute_opencli_command(
                 f"{command} --help",
                 format_json=False,
             )
@@ -226,7 +282,7 @@ class OpenCLITool:
                 if subcommand.startswith(p):
                     subcommand = subcommand[len(p) :]
 
-            r = self._execute_command(
+            r = self._execute_opencli_command(
                 subcommand,
                 True,
             )
@@ -294,7 +350,7 @@ class OpenCLITool:
 
         # list
         def opencli_list():
-            r = self._execute_command("list", False)
+            r = self._execute_opencli_command("list", False)
             if not r.success:
                 return r.error
 
