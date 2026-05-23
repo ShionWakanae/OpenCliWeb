@@ -6,7 +6,7 @@
 
 ## 项目简介
 > [!Note]
->这是基于OpenCLI的问答系统。WEBUI来自我的企业知识库的外壳。  
+>这是基于OpenCLI的问答系统。WEBUI来自我的[企业知识库](https://github.com/ShionWakanae/Llamarkdown)项目的外壳。  
 >
 >它和直接使用OpenCLI命令行有什么区别？  
 >这个项目是让LLM判断你的问题并调用OpenCLI，最后进行WEB页面的展示。  
