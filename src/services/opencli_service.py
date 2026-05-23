@@ -1,10 +1,12 @@
 import time
 import traceback
-
 from openai import AsyncOpenAI
 from utils.settings import settings
 from opencli.IntelligentAgent import IntelligentCLIAgent
 from opencli.OpenCLITool import OpenCLITool
+from utils.logger import logger
+
+log = logger.log
 
 
 def create_agent(
@@ -26,6 +28,72 @@ def create_agent(
 
 
 class OpenCLIService:
+    def __init__(
+        self,
+    ):
+        log("[Service] init...")
+        self._cli_tool = OpenCLITool()
+
+        # check node.js version
+        r = self._cli_tool._execute_any_command("node --version")
+        if not r.success:
+            log(r.error, False)
+            log(
+                "[Service] node.js check failed, please install node.js >= 20",
+                False,
+            )
+            exit(1)
+        else:
+            log(f"[Service] node.js version: {r.stdout.strip()}", False)
+
+        # check opencli version
+        r = self._cli_tool._execute_opencli_command("--version", format_json=False)
+        if not r.success:
+            log(r.error, False)
+            log(
+                "[Service] opencli check failed, please 'npm install -g @jackwener/opencli'",
+                False,
+            )
+            exit(1)
+        else:
+            log(f"[Service] opencli version: {r.stdout.strip()}", False)
+
+        # opencli doctor
+        r = self._cli_tool._execute_opencli_command("doctor", format_json=False)
+        if not r.success:
+            log(r.error, False)
+            log(
+                "[Service] opencli doctor failed, please check!",
+                False,
+            )
+            exit(1)
+        else:
+            # 这里应该检查opencli doctor返回的：1)Daemon, 2)Extension, 3)Connectivity
+            output = r.stdout.strip()
+            # 需要检查的三个关键部分
+            checks = {
+                "Daemon": "[OK] Daemon: running" in output,
+                "Extension": "[OK] Extension: connected" in output,
+                "Connectivity": "[OK] Connectivity: connected" in output,
+            }
+
+            # 记录检查结果
+            all_ok = True
+            for component, status in checks.items():
+                if status:
+                    log(f"[Service] ✓ opencli {component}: OK", False)
+                else:
+                    # log(f"[Service] ✗ {component}: FAILED", False)
+                    all_ok = False
+
+            # 如果有任何检查失败，则退出
+            if not all_ok:
+                log("[Service] opencli doctor validation failed", False)
+                print(output)
+                exit(1)
+
+            log("[Service] opencli doctor passed", False)
+
     async def stream_answer(
         self,
         question,
