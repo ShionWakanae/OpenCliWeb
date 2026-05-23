@@ -208,7 +208,10 @@ class IntelligentCLIAgent:
                 name = tc["name"]
                 try:
                     args = json.loads(tc["args"] or "{}")
-                except:
+                except Exception as e:
+                    print(f"Error parsing args: {e}")
+                    if self.verbose:
+                        print(traceback.format_exc())
                     args = {}
 
                 yield {
@@ -267,7 +270,8 @@ class IntelligentCLIAgent:
                     answer += event["text"]
             return answer
 
-        except Exception:
+        except Exception as e:
+            print(f"Error async for event in self._run: {e}")
             if self.verbose:
                 print(traceback.format_exc())
             raise
