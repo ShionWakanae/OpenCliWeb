@@ -81,7 +81,7 @@ class OpenCLIService:
             all_ok = True
             for component, status in checks.items():
                 if status:
-                    log(f"[Service] ✓ opencli {component}: OK", False)
+                    log(f"[Service] opencli {component}: OK ✓", False)
                 else:
                     # log(f"[Service] ✗ {component}: FAILED", False)
                     all_ok = False
