@@ -237,7 +237,7 @@ class OpenCLITool:
 
                 返回：
                 该网站支持的子命令列表
-                包括每个子命令是否支持(limit)参数。
+                包括子命令是否支持'limit'选项(command_options)。
             """),
             schema={
                 "type": "object",
@@ -294,10 +294,11 @@ class OpenCLITool:
             name="opencli_execute",
             description=dedent("""\
                 ## subcommand
-                执行某个网站命令,由网站(site)和命令(command)组成，中间有1个空格。
+                执行某个网站命令,由网站(site)和命令(command)组成,中间有1个空格
+                
                 格式:
                 <site> <command>
-                如果subcommand支持 <limit> 参数，且用户指定了限制条数，则格式:
+                如果subcommand支持 <limit> 选项，且用户指定了限制条数，则格式:
                 <site> <command> --limit=(条数)
 
                 比如:
@@ -311,13 +312,16 @@ class OpenCLITool:
                 系统会自动补充。
 
                 不要输入subcommand字符串本身，比如:
-                subcommand = subcommand = bilibili history
+                subcommand = subcommand=bilibili history
 
-                ## result_limit(整数) 参数
-                # 可选。限制返回结果的数量。
+                ## result_limit
+                限制返回结果的数量。
                 
-                如果subcommand本身不支持 <limit> 参数，但用户指定了限制条数，则:
-                使用 result_limit 参数。
+                如果subcommand本身不支持 <limit> 选项,但用户指定了限制条数,则:
+                传入 result_limit 参数。
+
+                如果subcommand本身支持 <limit> 选项,则:
+                不传入 result_limit 参数。
                 
                 例如：
                 result_limit=10

@@ -799,13 +799,13 @@ def main():
                                 text_content = ""
                                 text_content_with_format = ""
                             if text_content:
-                                text_content = (
-                                    text_content.replace("\n", " ")[:60] + "..."
-                                )
+                                text_content = text_content.replace("\n", " ").replace(
+                                    "\\n", " "
+                                )[:60]
                                 text_content_with_format = (
                                     f" [bold bright_blue]{text_content}[/]"
                                 )
-                                text_content = f" {text_content}"
+                                text_content = f" `{text_content}...`"
                             log(f"{prefix}{text_content_with_format}")
                             partial_text += f"{prefix}{text_content}" + "\n"
                             rendered_html = render_markdown_html(partial_text)
