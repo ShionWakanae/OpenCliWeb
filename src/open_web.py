@@ -787,25 +787,28 @@ def main():
                         elif event["type"] == "tool":
                             tool_name = event.get("tool_name")
                             kwargs = event.get("kwargs")
-                            stage = f"{event.get('stage')}"
+                            stage = event.get("stage")
+                            text_content = event.get("text_content")
+                            text_content = text_content.replace("\n", " ").replace(
+                                "\\n", " "
+                            )
+                            text_content_with_format = text_content
                             if stage == "→" and kwargs:
                                 stage = f"{stage} {kwargs}"
-
-                            text_content = event.get("text_content")
-                            text_content_with_format = text_content
+                            if stage != "→" and tool_name == "opencli_list":
+                                text_content = f"{len(text_content.split())} sites"
+                                text_content_with_format = text_content
 
                             prefix = f"- **[工具]** {tool_name} {stage}"
-                            if tool_name == "opencli_list":
-                                text_content = ""
-                                text_content_with_format = ""
                             if text_content:
-                                text_content = text_content.replace("\n", " ").replace(
-                                    "\\n", " "
-                                )[:60]
+                                text_content = (
+                                    f"`{text_content[:60]}...`"
+                                    if len(text_content) > 60
+                                    else f"`{text_content}`"
+                                )
                                 text_content_with_format = (
                                     f" [bold bright_blue]{text_content}[/]"
                                 )
-                                text_content = f" `{text_content}...`"
                             log(f"{prefix}{text_content_with_format}")
                             partial_text += f"{prefix}{text_content}" + "\n"
                             rendered_html = render_markdown_html(partial_text)
