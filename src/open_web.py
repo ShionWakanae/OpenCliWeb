@@ -825,6 +825,8 @@ def main():
 
                     if accumulated:
                         partial_text += accumulated
+                    if assistant_answer_spinner:
+                        assistant_answer_spinner.set_visibility(False)
                     log("Answer completed")
                     log("----------------")
                     log(
@@ -870,19 +872,19 @@ def main():
                     chat_history.append(history_item)
 
                 except Exception as e:
+                    log(e)
+                    print(traceback.format_exc())
                     partial_text += f"  \n  \n  `📛出现了错误：{str(e)}`！"
                     atime = f"🕐{datetime.datetime.now().strftime('%H:%M:%S')}"
                     rendered_html = render_markdown_html(partial_text)
-                    log(e)
-                    print(traceback.format_exc())
                     if assistant_message:
                         assistant_message.content = rendered_html
                         assistant_message.update()
                 finally:
-                    if assistant_stage_spinner:
-                        assistant_stage_spinner.delete()
-                    if assistant_answer_spinner:
-                        assistant_answer_spinner.delete()
+                    # if assistant_stage_spinner:
+                    #     assistant_stage_spinner.delete()
+                    # if assistant_answer_spinner:
+                    #     assistant_answer_spinner.delete()
                     auto_scroll_chat(client)
                     send_button.enable()
                     send_button.props(remove="loading")
