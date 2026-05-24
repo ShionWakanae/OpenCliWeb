@@ -294,12 +294,16 @@ class OpenCLITool:
             name="opencli_execute",
             description=dedent("""\
                 ## subcommand
-                执行某个网站命令,由网站(site)和命令(command)组成,中间有1个空格
+                执行某个网站命令
                 
                 格式:
-                <site> <command>
-                如果subcommand支持 <limit> 选项，且用户指定了限制条数，则格式:
-                <site> <command> --limit=(条数)
+                (site) (command)
+                
+                或:
+                (site) (command) --limit=(条数)    
+                
+                说明: 如果subcommand支持可选的 <limit> 选项，且用户表达了对返回条数的需求。
+                这里的 --limit 可增加或减少实际返回的结果数量。
 
                 比如:
                 subcommand = bilibili history
@@ -315,16 +319,13 @@ class OpenCLITool:
                 subcommand = subcommand=bilibili history
 
                 ## result_limit
-                限制返回结果的数量。
+                后期限制(仅减少)返回结果的数量。
                 
-                如果subcommand本身不支持 <limit> 选项,但用户指定了限制条数,则:
-                传入 result_limit 参数。
-
-                如果subcommand本身支持 <limit> 选项,则:
-                不传入 result_limit 参数。
+                如果subcommand不支持 <limit> 选项,但用户表达了限制条数,则传入 result_limit 参数。
+                如果subcommand支持 <limit> 选项,则不传入 result_limit 参数。
                 
                 例如：
-                result_limit=10
+                result_limit = 10
             """),
             schema={
                 "type": "object",
