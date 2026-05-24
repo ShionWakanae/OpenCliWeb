@@ -1,13 +1,9 @@
-import asyncio
 import datetime
 from pathlib import Path
 import traceback
 import markdown
-from nicegui import ui
-from nicegui import app
-from nicegui import context
+from nicegui import ui, app, context, background_tasks
 from rich import print
-import re
 from services.opencli_service import service
 from utils.logger import logger
 from utils.settings import (
@@ -71,156 +67,6 @@ def render_markdown_html(md_str: str, class_name: str = "final-markdown") -> str
             </div>"""
 
 
-def read_file_by_path(path):
-    if not path:
-        return "文件不存在！"
-
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read()
-
-    except Exception as e:
-        return f"读取失败:\n\n{e}"
-
-
-def build_highlighted_markdown(content, hits):
-    CODE_FENCE_RE = re.compile(r"^\s*(```+|~~~+)")
-    lines = content.splitlines()
-    first_hit_done = False
-    # merge intervals
-    normalized_hits = []
-    for start, end in sorted(hits):
-        if end <= start:
-            continue
-
-        if not normalized_hits:
-            normalized_hits.append([start, end])
-            continue
-
-        _, last_end = normalized_hits[-1]
-        if start <= last_end:
-            normalized_hits[-1][1] = max(
-                last_end,
-                end,
-            )
-        else:
-            normalized_hits.append([start, end])
-
-    # highlighted line set
-    highlighted = set()
-    for start, end in normalized_hits:
-        for i in range(start, end):
-            highlighted.add(i)
-
-    # rebuild markdown
-    output = []
-
-    # code fence state
-    in_code_block = False
-    current_fence = None
-
-    for idx, line in enumerate(lines):
-        # detect fence
-        fence_match = CODE_FENCE_RE.match(line)
-        if fence_match:
-            fence = fence_match.group(1)
-            # entering code block
-            if not in_code_block:
-                in_code_block = True
-                current_fence = fence
-
-            # leaving code block
-            elif fence.startswith(current_fence[0]):
-                in_code_block = False
-                current_fence = None
-
-            output.append(line)
-            continue
-
-        # do not highlight inside code block
-        if in_code_block:
-            output.append(line)
-            continue
-
-        # normal highlight logic
-        if idx in highlighted:
-            # avoid empty line highlight issue
-            if line.strip() and not line.lstrip().startswith("#"):
-                # markdown table
-                if line.lstrip().startswith("|"):
-                    parts = line.split("|")
-                    # preserve original structure
-                    is_separator = False
-                    if len(parts) > 2:
-                        non_empty_cells = [p for p in parts if p.strip()]
-                        is_separator = all(
-                            all(ch in "- :" for ch in cell.strip())
-                            and "-" in cell.strip()
-                            for cell in non_empty_cells
-                            if cell.strip()
-                        )
-
-                    # separator row
-                    if is_separator:
-                        # 分隔行，保持原样
-                        output.append(line)
-                    # data row
-                    else:
-                        # 数据行，高亮每个单元格内容
-                        result_parts = ["|"]  # 开头
-                        for cell in parts[1:-1]:
-                            stripped = cell.strip()
-                            if stripped:
-                                if not first_hit_done:
-                                    result_parts.append(
-                                        f' <mark id="first-hit">{stripped}</mark> |'
-                                    )
-                                    first_hit_done = True
-                                else:
-                                    result_parts.append(f" <mark>{stripped}</mark> |")
-                            else:
-                                result_parts.append(" |")
-                        # 不需要额外加尾部的 |
-                        marked_line = "".join(result_parts)
-                        output.append(marked_line)
-                # markdown list
-                else:
-                    # 检查当前行是否为列表项
-                    m = re.match(r"^(\s*(?:\*|-|\+|\d+[.)])\s+)(.*)", line)
-                    if m:
-                        # 检查上一行是否为列表项
-                        prev_line = output[-1] if output else ""
-                        prev_is_list = re.match(
-                            r"^\s*(?:\*|-|\+|\d+[.)])\s+",
-                            prev_line,
-                        )
-                        if prev_line.strip() and not prev_is_list:
-                            output.append("")
-
-                        # 判断是否为第一个高亮项
-                        if not first_hit_done:
-                            output.append(
-                                f"{m.group(1)}=={m.group(2)}==<mark id='first-hit'/>"
-                            )
-                            first_hit_done = True
-                        else:
-                            output.append(f"{m.group(1)}=={m.group(2)}==")
-                    else:
-                        if not first_hit_done:
-                            output.append(f'=={line}== <mark id="first-hit"/>')
-                            first_hit_done = True
-                        else:
-                            output.append(f"=={line}==")
-            else:
-                output.append(line)
-
-        # normal line
-        else:
-            output.append(line)
-
-    return "\n".join(output)
-
-
 def auto_scroll_chat(client):
     client.run_javascript("scrollToBottom()")
 
@@ -268,52 +114,6 @@ def main():
                         ),
                     ).props("color=primary icon='check'")
         dialog.open()
-
-    def show_inline_rag_confirm(question, container, client):
-        container.clear()
-        with container:
-            ui.label("❓需要继续从资料库检索吗？").classes("text-sm text-gray-400")
-
-            def on_yes():
-                container.clear()
-                container.delete()
-                asyncio.create_task(
-                    send_message(
-                        question,
-                        client=client,
-                    )
-                )
-
-            def on_no():
-                container.clear()
-                container.delete()
-
-            ui.button("否", on_click=on_no).props("flat dense size=sm icon='close'")
-            ui.button("是", on_click=on_yes).props("dense size=sm icon='check'")
-
-    def show_inline_force_rag_confirm(question, container, client):
-        container.clear()
-        with container:
-            ui.label(f"❓需要重新强制检索'{question}'吗？？").classes(
-                "text-sm text-gray-400"
-            )
-
-            def on_yes():
-                container.clear()
-                container.delete()
-                asyncio.create_task(
-                    send_message(
-                        f"'{question}'",
-                        client=client,
-                    )
-                )
-
-            def on_no():
-                container.clear()
-                container.delete()
-
-            ui.button("否", on_click=on_no).props("flat dense size=sm icon='close'")
-            ui.button("是", on_click=on_yes).props("dense size=sm icon='check'")
 
     message_id = 0
     # page
@@ -654,6 +454,7 @@ def main():
                         icon="send",
                     ).props("flat round dense")
 
+            @background_tasks.await_on_shutdown
             async def send_message(
                 message=None,
                 client=None,
@@ -962,13 +763,22 @@ def login():
             ).props("flat round dense")
 
 
+async def cleanup():
+    print("准备关闭应用...")
+
+
+app.on_shutdown(cleanup)
+
 # run app
-ui.run(
-    host=settings.host,
-    port=settings.port,
-    title="我的小助手",
-    language="zh-CN",
-    storage_secret=settings.storage_secret,
-    reload=False,
-    dark=True,
-)
+try:
+    ui.run(
+        host=settings.host,
+        port=settings.port,
+        title="我的小助手",
+        language="zh-CN",
+        storage_secret=settings.storage_secret,
+        reload=False,
+        dark=True,
+    )
+except KeyboardInterrupt:
+    print("应用程序已关闭.")
