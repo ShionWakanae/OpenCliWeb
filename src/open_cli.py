@@ -82,13 +82,6 @@ async def main(question):
         False,
     )
     print()
-    # fallback
-    if not got_answer:
-        print(
-            f"[bold bright_magenta]对不起，我不知道哪里出了问题，无法完成你的要求……[/]",
-            flush=True,
-        )
-    print()
     log("All done ✅")
     print()
 
