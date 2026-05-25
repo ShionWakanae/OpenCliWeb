@@ -143,6 +143,9 @@ class IntelligentCLIAgent:
                 tool_choice="auto",
                 temperature=0.1,
                 stream=True,
+                stream_options={
+                    "include_usage": True,
+                },
                 extra_body={
                     "chat_template_kwargs": {
                         "enable_thinking": False,
@@ -158,7 +161,20 @@ class IntelligentCLIAgent:
             content = ""
             tool_calls = {}
             async for chunk in stream:
+                # usage chunk
+                if chunk.usage:
+                    yield {
+                        "type": "usage",
+                        "usage": chunk.usage.model_dump(),
+                        "model": chunk.model,
+                    }
+                    continue
+
+                if not chunk.choices:
+                    continue
+
                 delta = chunk.choices[0].delta
+
                 # 普通文本
                 if delta.content:
                     content += delta.content
@@ -266,7 +282,7 @@ class IntelligentCLIAgent:
                     }
                 )
 
-        raise Exception("tool loop overflow")
+        print("tool loop overflow !!!")
 
     # public
     def chat(self, message):

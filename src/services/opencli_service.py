@@ -44,7 +44,7 @@ class OpenCLIService:
             )
             exit(1)
         else:
-            log(f"[Service] node.js version: {r.stdout.strip()}", False)
+            log(f"[Service] node.js version: {r.stdout.strip()}")
 
         # check opencli version
         r = self._cli_tool._execute_opencli_command("--version")
@@ -56,7 +56,7 @@ class OpenCLIService:
             )
             exit(1)
         else:
-            log(f"[Service] opencli version: {r.stdout.strip()}", False)
+            log(f"[Service] opencli version: {r.stdout.strip()}")
 
         # opencli doctor
         r = self._cli_tool._execute_opencli_command("doctor")
@@ -81,7 +81,7 @@ class OpenCLIService:
             all_ok = True
             for component, status in checks.items():
                 if status:
-                    log(f"[Service] opencli {component}: OK ✓", False)
+                    log(f"[Service] opencli {component}: OK ✓")
                 else:
                     # log(f"[Service] ✗ {component}: FAILED", False)
                     all_ok = False
@@ -92,7 +92,7 @@ class OpenCLIService:
                 print(output)
                 exit(1)
 
-            log("[Service] opencli doctor passed", False)
+            log("[Service] opencli doctor passed")
 
     async def stream_answer(
         self,
@@ -102,7 +102,7 @@ class OpenCLIService:
 
         # def on_execute(event):
         #     events.append(event)
-
+        log(f"[Service] Start LLM provider: {settings.llm_api_base}", False)
         agent = create_agent(
             base_url=settings.llm_api_base,
             api_key=settings.llm_api_key,

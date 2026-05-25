@@ -184,7 +184,9 @@ def main():
                     .style("width: 100px;")
                 ):
                     ui.icon("tips_and_updates").props("size=medium")
-                    ui.label("我的小助手").style("font-size: 16px; font-weight: 600;")
+                    ui.label("&nbsp;我的小助手").style(
+                        "font-size: 16px; font-weight: 600;"
+                    )
 
                 # 快捷问题区域（桌面显示）
                 with ui.row().classes("""
@@ -542,6 +544,9 @@ def main():
                     timing = {}
                     # consume
                     accumulated = ""
+                    model_name = ""
+                    prompt_tokens = 0
+                    completion_tokens = 0
                     async for event in service.stream_answer(message):
                         if event is None:
                             break
@@ -565,6 +570,19 @@ def main():
                                 assistant_message.content = rendered_html
                                 assistant_message.update()
                                 auto_scroll_chat(client)
+
+                        elif event["type"] == "usage":
+                            if not model_name:
+                                model_name = event["model"]
+                            prompt_tokens += int(event["usage"]["prompt_tokens"])
+                            completion_tokens += int(
+                                event["usage"]["completion_tokens"]
+                            )
+                            # log(
+                            #     f"{event['model']} "
+                            #     f"in={event['usage']['prompt_tokens']} "
+                            #     f"out={event['usage']['completion_tokens']}"
+                            # )
 
                         elif event["type"] == "trace":
                             if not first_trace:
@@ -637,6 +655,10 @@ def main():
                         f"Retrieval: {timing.get('query_ms', 0)} ms, Answers: {timing.get('llm_ms', 0)} ms, Total: {timing.get('total_ms', 0)} ms",
                         False,
                     )
+                    log(
+                        f"Model: {model_name}@{settings.llm_api_base}, Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens}",
+                        False,
+                    )
                     print()
 
                     # fallback
@@ -648,10 +670,14 @@ def main():
                     atime = f"🕐{datetime.datetime.now().strftime('%H:%M:%S')}"
                     total_ms = timing.get("total_ms", 0)
                     speed_str = get_speed_str(float(total_ms))
+                    if model_name:
+                        source_hint = f"📖{model_name}"
+                    else:
+                        source_hint = ""
                     footer = f"""
                         <br>
                         <div style="text-align:right; font-size:12px; color:#888888 !important;">
-                        {speed_str}{logger.format_duration(total_ms)} &nbsp;&nbsp;&nbsp;&nbsp; {atime}
+                        {source_hint} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {speed_str}{logger.format_duration(total_ms)} &nbsp;&nbsp;&nbsp;&nbsp; {atime}
                         </div>
                     """
                     rendered_html = render_markdown_html(partial_text)
@@ -685,10 +711,12 @@ def main():
                         assistant_message.content = rendered_html
                         assistant_message.update()
                 finally:
-                    # if assistant_stage_spinner:
-                    #     assistant_stage_spinner.delete()
-                    # if assistant_answer_spinner:
-                    #     assistant_answer_spinner.delete()
+                    if assistant_stage_spinner:
+                        assistant_stage_spinner.set_visibility(False)
+                        assistant_stage_spinner.update()
+                    if assistant_answer_spinner:
+                        assistant_answer_spinner.set_visibility(False)
+                        assistant_answer_spinner.update()
                     auto_scroll_chat(client)
                     send_button.enable()
                     send_button.props(remove="loading")
