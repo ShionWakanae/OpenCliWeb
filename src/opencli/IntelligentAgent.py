@@ -5,6 +5,9 @@ from typing import Optional
 from textwrap import dedent
 from openai import AsyncOpenAI
 from opencli.OpenCLITool import OpenCLITool
+from utils.logger import logger
+
+log = logger.log
 
 
 class IntelligentCLIAgent:
@@ -22,9 +25,9 @@ class IntelligentCLIAgent:
         self.opencli_tool = opencli_tool or OpenCLITool(verbose=verbose)
         self.tools = self.opencli_tool.get_tools()
         if verbose:
-            print(f"[Agent] loaded {len(self.tools)} tools")
+            log(f"[Agent] loaded {len(self.tools)} tools")
             for t in self.tools:
-                print("-", t["function"]["name"])
+                log(f"- {t['function']['name']}")
 
     # prompt
     def _get_system_prompt(
@@ -167,7 +170,7 @@ class IntelligentCLIAgent:
                     yield {
                         "type": "usage",
                         "usage": chunk.usage.model_dump(),
-                        "model": chunk.model,
+                        "model": chunk.model.replace(".gguf", ""),
                     }
                     continue
 

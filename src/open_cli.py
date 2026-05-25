@@ -7,7 +7,7 @@ from utils.logger import logger
 log = logger.log
 
 
-async def main(question):
+async def main(question, verbose=False):
     accumulated = ""
     got_answer = False
     first_token = False
@@ -15,7 +15,7 @@ async def main(question):
     model_name = ""
     prompt_tokens = 0
     completion_tokens = 0
-    async for event in service.stream_answer(question):
+    async for event in service.stream_answer(question, verbose=verbose):
         if event["type"] == "token":
             chunk = event["text"]
             if first_token:
@@ -49,7 +49,7 @@ async def main(question):
                 text_content = f"{len(text_content.split())} sites"
                 text_content_with_format = text_content
 
-            prefix = f"- **[工具]** {tool_name} {stage}"
+            prefix = f"[工具] {tool_name} {stage}"
             if text_content:
                 text_content = (
                     f"`{text_content[:60]}...`"
@@ -71,17 +71,18 @@ async def main(question):
         print(f"[bold bright_magenta]{accumulated}[/]", flush=True)
         print()
 
-    log("Answer completed")
-    log("----------------")
+    if got_answer:
+        log("Answer completed")
+    else:
+        log("No answer...")
     log(
         f"Retrieval: {timing.get('query_ms', 0)} ms, Answers: {timing.get('llm_ms', 0)} ms, Total: {timing.get('total_ms', 0)} ms",
         False,
     )
     log(
-        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens} <{model_name}>",
+        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens} <[bold bright_green]{model_name}[/]>",
         False,
     )
-    print()
     log("All done ✅")
     print()
 
@@ -92,7 +93,14 @@ if __name__ == "__main__":
         "question",
         help="Question text",
     )
+    parser.add_argument(
+        "--Verbose",
+        action="store_true",
+        default=False,
+        help="Verbose output",
+    )
     args = parser.parse_args()
     quest_str = args.question
+    verbose = args.Verbose
     log(f"Question: [bold bright_yellow]{quest_str}[/]", False)
-    asyncio.run(main(quest_str))
+    asyncio.run(main(quest_str, verbose))

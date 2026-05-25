@@ -8,6 +8,9 @@ from datetime import date
 from textwrap import dedent
 from dataclasses import dataclass
 from typing import Any
+from utils.logger import logger
+
+log = logger.log
 
 
 @dataclass
@@ -130,7 +133,7 @@ class OpenCLITool:
 
         try:
             if self.verbose:
-                print("[OpenCLI]", cmd)
+                log(f"[OpenCLI] {command}")
 
             result = subprocess.run(
                 cmd,

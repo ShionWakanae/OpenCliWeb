@@ -97,6 +97,7 @@ class OpenCLIService:
     async def stream_answer(
         self,
         question,
+        verbose=False,
     ):
         # events = []
 
@@ -107,7 +108,7 @@ class OpenCLIService:
             base_url=settings.llm_api_base,
             api_key=settings.llm_api_key,
             model=settings.llm_model,
-            verbose=False,
+            verbose=verbose,
             # on_execute=on_execute,
         )
 

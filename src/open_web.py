@@ -650,7 +650,7 @@ def main():
                         False,
                     )
                     log(
-                        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens} <{model_name}>",
+                        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens} <[bold bright_green]{model_name}[/]>",
                         False,
                     )
                     print()
@@ -671,7 +671,7 @@ def main():
                     footer = f"""
                         <br>
                         <div style="text-align:right; font-size:12px; color:#888888 !important;">
-                        {source_hint} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {speed_str}{logger.format_duration(total_ms)} &nbsp;&nbsp;&nbsp;&nbsp; {atime}
+                        {source_hint}&nbsp;&nbsp;&nbsp;&nbsp;{speed_str}{logger.format_duration(total_ms)}&nbsp;&nbsp;&nbsp;{atime}
                         </div>
                     """
                     rendered_html = render_markdown_html(partial_text)
