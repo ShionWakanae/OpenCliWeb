@@ -184,9 +184,8 @@ def main():
                     .style("width: 100px;")
                 ):
                     ui.icon("tips_and_updates").props("size=medium")
-                    ui.label("&nbsp;我的小助手").style(
-                        "font-size: 16px; font-weight: 600;"
-                    )
+                    ui.space()
+                    ui.label("我的小助手").style("font-size: 16px; font-weight: 600;")
 
                 # 快捷问题区域（桌面显示）
                 with ui.row().classes("""
@@ -578,11 +577,6 @@ def main():
                             completion_tokens += int(
                                 event["usage"]["completion_tokens"]
                             )
-                            # log(
-                            #     f"{event['model']} "
-                            #     f"in={event['usage']['prompt_tokens']} "
-                            #     f"out={event['usage']['completion_tokens']}"
-                            # )
 
                         elif event["type"] == "trace":
                             if not first_trace:
@@ -639,7 +633,7 @@ def main():
                         elif event["type"] == "debug":
                             timing = event
                             debug_panel.update()
-                            switch_debug.set_enabled(True)
+                            switch_debug.set_enabled(False)
 
                         # status
                         elif event["type"] == "status":
@@ -656,7 +650,7 @@ def main():
                         False,
                     )
                     log(
-                        f"Model: {model_name}@{settings.llm_api_base}, Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens}",
+                        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens} <{model_name}>",
                         False,
                     )
                     print()
