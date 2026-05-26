@@ -611,7 +611,7 @@ def main():
                                 "" if not trace_timing else f"(_{trace_timing}ms_)"
                             )
                             log(msg_str)
-                            trace_message_content += f"{msg_str} {timing_str}\n\n"
+                            trace_message_content += f"{msg_str} {timing_str}\n"
                             assistant_message.content = ""
                             trace_message_ui.content = render_markdown_html(
                                 trace_message_content
