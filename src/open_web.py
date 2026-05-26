@@ -665,7 +665,7 @@ def main():
                     total_ms = timing.get("total_ms", 0)
                     speed_str = get_speed_str(float(total_ms))
                     if model_name:
-                        source_hint = f"📖{model_name}"
+                        source_hint = f"🌐{model_name}"
                     else:
                         source_hint = ""
                     footer = f"""
