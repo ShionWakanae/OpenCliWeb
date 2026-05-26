@@ -460,7 +460,6 @@ def main():
                 message=None,
                 client=None,
             ):
-                partial_text = ""
                 try:
                     if client is None:
                         client = context.client
@@ -521,12 +520,18 @@ def main():
                                         "facebook", size="md"
                                     ).classes("mt-0 mb-0")
                                     assistant_answer_spinner.set_visibility(False)
-
-                                    rendered_html = render_markdown_html("### 思考中")
+                                    trace_expansion = ui.expansion("思考中……")
+                                    trace_expansion.open()
+                                    with trace_expansion:
+                                        trace_message_ui = ui.html().style(
+                                            """
+                                            width: 100%;
+                                            """
+                                        )
                                     nonlocal message_id
                                     message_id += 1
                                     assistant_message = (
-                                        ui.html(rendered_html)
+                                        ui.html("")
                                         .props(f"id=assistant-msg{message_id}")
                                         .style(
                                             """
@@ -538,14 +543,15 @@ def main():
 
                     # state
                     got_answer = False
-                    first_token = False
-                    first_trace = False
                     timing = {}
                     # consume
                     accumulated = ""
                     model_name = ""
                     prompt_tokens = 0
                     completion_tokens = 0
+                    trace_message_content = ""
+                    assistant_message_content = ""
+
                     async for event in service.stream_answer(message):
                         if event is None:
                             break
@@ -553,20 +559,23 @@ def main():
                         # token
                         if event["type"] == "token":
                             got_answer = True
-                            if not first_token:
-                                log("Streaming...")
-                                partial_text = ""
-                                first_token = True
-                                if assistant_stage_spinner:
-                                    assistant_stage_spinner.set_visibility(False)
-                                if assistant_answer_spinner:
-                                    assistant_answer_spinner.set_visibility(True)
+                            if (
+                                assistant_stage_spinner
+                                and assistant_stage_spinner.visible
+                            ):
+                                assistant_stage_spinner.set_visibility(False)
+                            if (
+                                assistant_answer_spinner
+                                and not assistant_answer_spinner.visible
+                            ):
+                                assistant_answer_spinner.set_visibility(True)
                             accumulated += event["text"]
                             if "\n" in accumulated:
-                                partial_text += accumulated
+                                assistant_message_content += accumulated
                                 accumulated = ""
-                                rendered_html = render_markdown_html(partial_text)
-                                assistant_message.content = rendered_html
+                                assistant_message.content = render_markdown_html(
+                                    assistant_message_content
+                                )
                                 assistant_message.update()
                                 auto_scroll_chat(client)
 
@@ -579,9 +588,21 @@ def main():
                             )
 
                         elif event["type"] == "trace":
-                            if not first_trace:
-                                partial_text = "### 思考中\n\n"
-                                first_trace = True
+                            if (
+                                assistant_stage_spinner
+                                and not assistant_stage_spinner.visible
+                            ):
+                                assistant_stage_spinner.set_visibility(True)
+                            if (
+                                assistant_answer_spinner
+                                and assistant_answer_spinner.visible
+                            ):
+                                assistant_answer_spinner.set_visibility(False)
+                            trace_message_content += assistant_message_content + (
+                                accumulated + "\n\n" if accumulated else ""
+                            )
+                            assistant_message_content = ""
+                            accumulated = ""
                             trace_stage = event["stage"]
                             trace_message = event["message"]
                             trace_timing = event["timing"]
@@ -590,14 +611,32 @@ def main():
                                 "" if not trace_timing else f"(_{trace_timing}ms_)"
                             )
                             log(msg_str)
-                            partial_text += f"{msg_str} {timing_str}\n\n"
-                            rendered_html = render_markdown_html(partial_text)
-                            assistant_message.content = rendered_html
+                            trace_message_content += f"{msg_str} {timing_str}\n\n"
+                            assistant_message.content = ""
+                            trace_message_ui.content = render_markdown_html(
+                                trace_message_content
+                            )
                             assistant_message.update()
+                            trace_message_ui.update()
                             auto_scroll_chat(client)
 
                         # sources
                         elif event["type"] == "tool":
+                            if (
+                                assistant_stage_spinner
+                                and not assistant_stage_spinner.visible
+                            ):
+                                assistant_stage_spinner.set_visibility(True)
+                            if (
+                                assistant_answer_spinner
+                                and assistant_answer_spinner.visible
+                            ):
+                                assistant_answer_spinner.set_visibility(False)
+                            trace_message_content += assistant_message_content + (
+                                accumulated + "\n\n" if accumulated else ""
+                            )
+                            assistant_message_content = ""
+                            accumulated = ""
                             tool_name = event.get("tool_name")
                             kwargs = event.get("kwargs")
                             stage = event.get("stage")
@@ -605,28 +644,37 @@ def main():
                             text_content = text_content.replace("\n", " ").replace(
                                 "\\n", " "
                             )
-                            text_content_with_format = text_content
+
                             if stage == "→" and kwargs:
-                                stage = f"{stage} {kwargs}"
+                                text_content = str(kwargs)
                             if stage != "→" and tool_name == "opencli_list":
                                 text_content = f"{len(text_content.split())} sites"
-                                text_content_with_format = text_content
 
+                            text_content_with_format = text_content
                             prefix = f"- **[工具]** {tool_name} {stage}"
                             if text_content:
-                                text_content = (
-                                    f"`{text_content[:60]}...`"
-                                    if len(text_content) > 60
-                                    else f"`{text_content}`"
-                                )
                                 text_content_with_format = (
                                     f" [bold bright_blue]{text_content}[/]"
                                 )
+                                text_content = (
+                                    f" `{text_content[:60]}...`"
+                                    if len(text_content) > 60
+                                    else f" `{text_content}`"
+                                )
+                                text_content_with_format = (
+                                    f"{text_content_with_format[:150]}..."
+                                    if len(text_content_with_format) > 150
+                                    else f"{text_content_with_format}"
+                                )
+
                             log(f"{prefix}{text_content_with_format}")
-                            partial_text += f"{prefix}{text_content}" + "\n"
-                            rendered_html = render_markdown_html(partial_text)
-                            assistant_message.content = rendered_html
+                            trace_message_content += f"{prefix}{text_content}" + "\n"
+                            assistant_message.content = ""
+                            trace_message_ui.content = render_markdown_html(
+                                trace_message_content
+                            )
                             assistant_message.update()
+                            trace_message_ui.update()
                             auto_scroll_chat(client)
 
                         # debug
@@ -640,9 +688,13 @@ def main():
                             got_answer = event["got_answer"]
 
                     if accumulated:
-                        partial_text += accumulated
+                        assistant_message_content += accumulated
                     if assistant_answer_spinner:
                         assistant_answer_spinner.set_visibility(False)
+                    if assistant_stage_spinner:
+                        assistant_stage_spinner.set_visibility(False)
+                    trace_expansion.text = "思考过程"
+                    trace_expansion.close()
                     log("Answer completed")
                     log("----------------")
                     log(
@@ -657,7 +709,7 @@ def main():
 
                     # fallback
                     if not got_answer:
-                        partial_text = (
+                        assistant_message_content = (
                             "对不起，我不知道哪里出了问题，无法完成你的要求……"
                         )
 
@@ -674,8 +726,9 @@ def main():
                         {source_hint}&nbsp;&nbsp;&nbsp;&nbsp;{speed_str}{logger.format_duration(total_ms)}&nbsp;&nbsp;&nbsp;{atime}
                         </div>
                     """
-                    rendered_html = render_markdown_html(partial_text)
-                    assistant_message.content = rendered_html + footer
+                    assistant_message.content = (
+                        render_markdown_html(assistant_message_content) + footer
+                    )
                     assistant_message.update()
                     client.run_javascript(f"""
                     if (window.MathJax) {{
@@ -688,7 +741,8 @@ def main():
                     history_item = {
                         "question": message,
                         "qtime": qtime,
-                        "answer": rendered_html + footer,
+                        "answer": render_markdown_html(assistant_message_content)
+                        + footer,
                         "atime": atime,
                         "confirm": False,
                         "sources": [],
@@ -698,11 +752,12 @@ def main():
                 except Exception as e:
                     log(e)
                     print(traceback.format_exc())
-                    partial_text += f"  \n  \n  `📛出现了错误：{str(e)}`！"
+                    assistant_message_content += f"  \n  \n  `📛出现了错误：{str(e)}`！"
                     atime = f"🕐{datetime.datetime.now().strftime('%H:%M:%S')}"
-                    rendered_html = render_markdown_html(partial_text)
                     if assistant_message:
-                        assistant_message.content = rendered_html
+                        assistant_message.content = render_markdown_html(
+                            assistant_message_content
+                        )
                         assistant_message.update()
                 finally:
                     if assistant_stage_spinner:
