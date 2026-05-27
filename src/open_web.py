@@ -588,21 +588,6 @@ def main():
                             )
 
                         elif event["type"] == "trace":
-                            if (
-                                assistant_stage_spinner
-                                and not assistant_stage_spinner.visible
-                            ):
-                                assistant_stage_spinner.set_visibility(True)
-                            if (
-                                assistant_answer_spinner
-                                and assistant_answer_spinner.visible
-                            ):
-                                assistant_answer_spinner.set_visibility(False)
-                            trace_message_content += assistant_message_content + (
-                                accumulated + "\n\n" if accumulated else ""
-                            )
-                            assistant_message_content = ""
-                            accumulated = ""
                             trace_stage = event["stage"]
                             trace_message = event["message"]
                             trace_timing = event["timing"]
