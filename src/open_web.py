@@ -352,9 +352,9 @@ def main():
                                 with ui.chat_message(
                                     sent=True,
                                     name="用户🧑",
-                                    stamp=item["qtime"],
+                                    stamp=item.get("qtime", ""),
                                 ).style("max-width: 85%;"):
-                                    ui.markdown(item["question"])
+                                    ui.markdown(item.get("question", ""))
 
                         with ui.column().classes("w-full items-start mt-0 mb-0"):
                             with ui.chat_message(
@@ -370,7 +370,7 @@ def main():
                                         ui.html(item.get("trace", "")).style(
                                             "width: 100%;"
                                         )
-                                    ui.html(item["answer"]).props(
+                                    ui.html(item.get("answer", "")).props(
                                         f"id=assistant-msg{message_id}"
                                     ).style("width: 100%;")
                                     context.client.run_javascript(f"""
