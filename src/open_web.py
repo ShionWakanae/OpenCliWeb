@@ -361,17 +361,25 @@ def main():
                                 sent=False,
                                 name="🧠历史回复",
                             ).style("max-width: 95%;"):
-                                message_id += 1
-                                ui.html(item["answer"]).props(
-                                    f"id=assistant-msg{message_id}"
-                                ).style("width: 100%;")
-                                context.client.run_javascript(f"""
-                                if (window.MathJax) {{
-                                    MathJax.typesetPromise();
-                                    const el = document.getElementById("assistant-msg{message_id}");
-                                    MathJax.typesetPromise([el]);
-                                }}
-                                """)
+                                with ui.column().classes(
+                                    "w-full items-start mt-0 mb-0"
+                                ):
+                                    message_id += 1
+                                    # "trace": trace_message_ui.content,
+                                    with ui.expansion("思考过程"):
+                                        ui.html(item.get("trace", "")).style(
+                                            "width: 100%;"
+                                        )
+                                    ui.html(item["answer"]).props(
+                                        f"id=assistant-msg{message_id}"
+                                    ).style("width: 100%;")
+                                    context.client.run_javascript(f"""
+                                    if (window.MathJax) {{
+                                        MathJax.typesetPromise();
+                                        const el = document.getElementById("assistant-msg{message_id}");
+                                        MathJax.typesetPromise([el]);
+                                    }}
+                                    """)
                             if item["sources"]:
                                 with (
                                     ui.row()
@@ -524,20 +532,14 @@ def main():
                                     trace_expansion.open()
                                     with trace_expansion:
                                         trace_message_ui = ui.html().style(
-                                            """
-                                            width: 100%;
-                                            """
+                                            "width: 100%;"
                                         )
                                     nonlocal message_id
                                     message_id += 1
                                     assistant_message = (
                                         ui.html("")
                                         .props(f"id=assistant-msg{message_id}")
-                                        .style(
-                                            """
-                                            width: 100%;
-                                            """
-                                        )
+                                        .style("width: 100%;")
                                     )
                                     auto_scroll_chat(client)
 
@@ -642,15 +644,16 @@ def main():
                                     f" [bold bright_blue]{text_content}[/]"
                                 )
                                 text_content = (
-                                    f" `{text_content[:60]}...`"
-                                    if len(text_content) > 60
+                                    f" `{text_content[:50]}...`"
+                                    if len(text_content) > 50
                                     else f" `{text_content}`"
                                 )
-                                text_content_with_format = (
-                                    f"{text_content_with_format[:150]}..."
-                                    if len(text_content_with_format) > 150
-                                    else f"{text_content_with_format}"
-                                )
+                                if stage != "→":
+                                    text_content_with_format = (
+                                        f"{text_content_with_format[:140]}..."
+                                        if len(text_content_with_format) > 140
+                                        else f"{text_content_with_format}"
+                                    )
 
                             log(f"{prefix}{text_content_with_format}")
                             trace_message_content += f"{prefix}{text_content}" + "\n"
@@ -678,6 +681,12 @@ def main():
                         assistant_answer_spinner.set_visibility(False)
                     if assistant_stage_spinner:
                         assistant_stage_spinner.set_visibility(False)
+                    trace_code_end = (
+                        "```" if trace_message_content[-1] == "\n" else "\n```"
+                    )
+                    trace_message_ui.content = render_markdown_html(
+                        f"```markdown\n{trace_message_content}{trace_code_end}"
+                    )
                     trace_expansion.text = "思考过程"
                     trace_expansion.close()
                     log("Answer completed")
@@ -726,8 +735,8 @@ def main():
                     history_item = {
                         "question": message,
                         "qtime": qtime,
-                        "answer": render_markdown_html(assistant_message_content)
-                        + footer,
+                        "trace": trace_message_ui.content,
+                        "answer": assistant_message.content,
                         "atime": atime,
                         "confirm": False,
                         "sources": [],
