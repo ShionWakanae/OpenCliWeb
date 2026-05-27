@@ -133,6 +133,10 @@ class OpenCLIService:
                             answer_start = time.perf_counter()
                 yield event
 
+            # no token, no answer
+            if answer_start == total_start:
+                answer_start = time.perf_counter()
+
             query_ms = round((answer_start - total_start) * 1000, 2)
             llm_ms = round((time.perf_counter() - answer_start) * 1000, 2)
             total_ms = round((time.perf_counter() - total_start) * 1000, 2)

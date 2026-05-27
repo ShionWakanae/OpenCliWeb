@@ -368,7 +368,7 @@ def main():
                                     # "trace": trace_message_ui.content,
                                     with ui.expansion("思考过程"):
                                         ui.html(item.get("trace", "")).style(
-                                            "width: 100%;"
+                                            "width: 100%; max-width: 100%; overflow-x: auto;"
                                         )
                                     ui.html(item.get("answer", "")).props(
                                         f"id=assistant-msg{message_id}"
@@ -528,7 +528,9 @@ def main():
                                         "facebook", size="md"
                                     ).classes("mt-0 mb-0")
                                     assistant_answer_spinner.set_visibility(False)
-                                    trace_expansion = ui.expansion("思考中……")
+                                    trace_expansion = ui.expansion("思考中……").style(
+                                        "width: 100%; max-width: 100%; overflow-x: auto;"
+                                    )
                                     trace_expansion.open()
                                     with trace_expansion:
                                         trace_message_ui = ui.html().style(
@@ -580,6 +582,14 @@ def main():
                                 )
                                 assistant_message.update()
                                 auto_scroll_chat(client)
+
+                        elif event["type"] == "reasoning":
+                            trace_message_content += event["text"]
+                            trace_message_ui.content = render_markdown_html(
+                                trace_message_content
+                            )
+                            trace_message_ui.update()
+                            auto_scroll_chat(client)
 
                         elif event["type"] == "usage":
                             if not model_name:
@@ -689,6 +699,8 @@ def main():
                     )
                     trace_expansion.text = "思考过程"
                     trace_expansion.close()
+                    trace_message_ui.update()
+                    auto_scroll_chat(client)
                     log("Answer completed")
                     log("----------------")
                     log(

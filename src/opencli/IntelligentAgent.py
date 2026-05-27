@@ -134,7 +134,7 @@ class IntelligentCLIAgent:
                 "content": message,
             },
         ]
-
+        is_answering = False
         MAX_TOOL = 15
         for _ in range(MAX_TOOL):
             stream = await self.client.chat.completions.create(
@@ -147,15 +147,15 @@ class IntelligentCLIAgent:
                 stream_options={
                     "include_usage": True,
                 },
-                extra_body={
-                    "chat_template_kwargs": {
-                        "enable_thinking": False,
-                    },
-                    "enable_thinking": False,
-                    "thinking": {
-                        "type": "disabled",
-                    },
-                },
+                # extra_body={
+                #     "chat_template_kwargs": {
+                #         "enable_thinking": False,
+                #     },
+                #     "enable_thinking": False,
+                #     "thinking": {
+                #         "type": "disabled",
+                #     },
+                # },
                 max_tokens=8192,
             )
 
@@ -176,13 +176,28 @@ class IntelligentCLIAgent:
 
                 delta = chunk.choices[0].delta
 
+                reasoning = ""
+                if hasattr(delta, "reasoning_content") and delta.reasoning_content:
+                    if not is_answering:
+                        reasoning = delta.reasoning_content
+                if hasattr(delta, "reasoning") and delta.reasoning:
+                    if not is_answering:
+                        reasoning = delta.reasoning
+
+                if not is_answering and reasoning:
+                    yield {
+                        "type": "reasoning",
+                        "text": reasoning,
+                    }
                 # 普通文本
-                if delta.content:
+                if hasattr(delta, "content") and delta.content:
                     content += delta.content
                     yield {
                         "type": "token",
                         "text": delta.content,
                     }
+                    if not is_answering:
+                        is_answering = True
 
                 # tool call
                 if delta.tool_calls:
