@@ -75,7 +75,7 @@ body {
     padding: 8px 12px 8px 12px;
     min-width: 0 !important;
     max-width: 100%;
-    overflow: hidden;
+    overflow: visible !important;
 }
 
 .q-message-text-content {
@@ -151,8 +151,8 @@ body {
     滚动区域
 */
 ::-webkit-scrollbar {
-
     width: 10px;
+    height: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -187,9 +187,6 @@ pre {
     border: 1px solid #3a3a3a;
     border-radius: 8px;
     padding: 8px;
-    overflow-x: auto;
-    max-width: 100%;
-    white-space: pre;
 }
 
 
@@ -200,8 +197,6 @@ pre code {
     background: transparent !important;
     color: #dcdcdc !important;
     padding: 0;
-    word-break: normal;
-    overflow-wrap: normal;
 }
 
 /* .streaming-text {
@@ -234,12 +229,24 @@ pre code {
 .final-markdown {
     min-width: 0;
     max-width: 100%;
+    overflow-x: hidden;
 }
 
 .final-markdown pre {
+    width: 100%;
     max-width: 100%;
     overflow-x: auto;
+    overflow-y: hidden;
+    box-sizing: border-box;
     white-space: pre;
+    display: block;
+}
+
+.final-markdown pre code {
+    display: inline;
+    white-space: pre;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
 }
 
 .final-markdown ul {
@@ -446,6 +453,23 @@ mark {
 
 .markdown-preview-light>*:last-child {
     margin-bottom: 0 !important;
+}
+
+.nicegui-expansion-content {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden;
+}
+
+.q-expansion-item__content {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden;
+}
+
+.q-expansion-item__container {
+    min-width: 0 !important;
+    max-width: 100% !important;
 }
 
 @media (max-width: 640px) {

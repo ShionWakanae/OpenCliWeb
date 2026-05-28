@@ -366,9 +366,11 @@ def main():
                                 ):
                                     message_id += 1
                                     # "trace": trace_message_ui.content,
-                                    with ui.expansion("思考过程"):
+                                    with ui.expansion("思考过程").style(
+                                        "width: 100%; max-width: 100%; overflow-x: auto;"
+                                    ):
                                         ui.html(item.get("trace", "")).style(
-                                            "width: 100%; max-width: 100%; overflow-x: auto;"
+                                            "width: 100%;"
                                         )
                                     ui.html(item.get("answer", "")).props(
                                         f"id=assistant-msg{message_id}"
