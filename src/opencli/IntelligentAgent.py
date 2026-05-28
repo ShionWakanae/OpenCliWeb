@@ -147,15 +147,15 @@ class IntelligentCLIAgent:
                 stream_options={
                     "include_usage": True,
                 },
-                # extra_body={
-                #     "chat_template_kwargs": {
-                #         "enable_thinking": False,
-                #     },
-                #     "enable_thinking": False,
-                #     "thinking": {
-                #         "type": "disabled",
-                #     },
-                # },
+                extra_body={
+                    "chat_template_kwargs": {
+                        "enable_thinking": False,
+                    },
+                    "enable_thinking": False,
+                    "thinking": {
+                        "type": "disabled",
+                    },
+                },
                 max_tokens=8192,
             )
 
