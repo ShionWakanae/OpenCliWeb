@@ -60,6 +60,12 @@ body {
 */
 .q-message {
     margin-bottom: 1px !important;
+    min-width: 0;
+}
+
+.q-message-container>div {
+    min-width: 0 !important;
+    max-width: 100%;
 }
 
 .q-message-text {
@@ -67,6 +73,14 @@ body {
     line-height: 1.5;
     font-size: 16px;
     padding: 8px 12px 8px 12px;
+    min-width: 0 !important;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.q-message-text-content {
+    min-width: 0 !important;
+    max-width: 100%;
 }
 
 
@@ -174,6 +188,8 @@ pre {
     border-radius: 8px;
     padding: 8px;
     overflow-x: auto;
+    max-width: 100%;
+    white-space: pre;
 }
 
 
@@ -184,6 +200,8 @@ pre code {
     background: transparent !important;
     color: #dcdcdc !important;
     padding: 0;
+    word-break: normal;
+    overflow-wrap: normal;
 }
 
 /* .streaming-text {
@@ -212,6 +230,16 @@ pre code {
     100% {
         opacity: 0.35;
     }
+}
+.final-markdown {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.final-markdown pre {
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: pre;
 }
 
 .final-markdown ul {
@@ -267,6 +295,9 @@ pre code {
     border-collapse: collapse;
     margin: 12px 0;
     font-size: 14px;
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
 }
 
 .final-markdown th,
