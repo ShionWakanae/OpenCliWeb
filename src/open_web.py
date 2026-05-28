@@ -6,10 +6,9 @@ from nicegui import ui, app, context, background_tasks
 from rich import print
 from services.opencli_service import service
 from utils.logger import logger
-from utils.settings import (
-    settings,
-    version_num,
-)
+from utils.settings import settings, version_num
+from utils.charstrings import display_width, truncate_by_width_approx
+
 
 log = logger.log
 
@@ -656,14 +655,14 @@ def main():
                                     f" [bold bright_blue]{text_content}[/]"
                                 )
                                 text_content = (
-                                    f" `{text_content[:50]}...`"
-                                    if len(text_content) > 50
+                                    f" `{truncate_by_width_approx(text_content, 50)}...`"
+                                    if display_width(text_content) > 50
                                     else f" `{text_content}`"
                                 )
                                 if stage != "→":
                                     text_content_with_format = (
-                                        f"{text_content_with_format[:140]}..."
-                                        if len(text_content_with_format) > 140
+                                        f"{truncate_by_width_approx(text_content_with_format, 140)}..."
+                                        if display_width(text_content_with_format) > 140
                                         else f"{text_content_with_format}"
                                     )
 

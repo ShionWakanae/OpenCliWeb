@@ -1,6 +1,7 @@
 import asyncio
 import argparse
 from rich import print
+from utils.charstrings import display_width, truncate_by_width_approx
 from services.opencli_service import service
 from utils.logger import logger
 
@@ -9,12 +10,14 @@ log = logger.log
 
 async def main(question, verbose=False):
     accumulated = ""
+    accumulated_reasoning = ""
     got_answer = False
     first_token = False
     timing = {}
     model_name = ""
     prompt_tokens = 0
     completion_tokens = 0
+    last_print_char = ""
     async for event in service.stream_answer(question, verbose=verbose):
         if event["type"] == "token":
             chunk = event["text"]
@@ -24,8 +27,24 @@ async def main(question, verbose=False):
             accumulated += chunk
             # 遇到句号、感叹号、问号或换行时输出
             if "\n" in accumulated or len(accumulated) > 23:
-                print(f"[bold bright_magenta]{accumulated}[/]", end="", flush=True)
+                print(f"[bright_magenta]{accumulated}[/]", end="", flush=True)
+                last_print_char = accumulated[-1]
                 accumulated = ""
+
+        elif event["type"] == "reasoning":
+            chunk = event["text"]
+            if first_token:
+                log("Streaming...")
+                first_token = False
+            accumulated_reasoning += chunk
+            if "\n" in accumulated_reasoning or len(accumulated_reasoning) > 23:
+                print(
+                    f"[dark_magenta]{accumulated_reasoning}[/]",
+                    end="",
+                    flush=True,
+                )
+                last_print_char = accumulated_reasoning[-1]
+                accumulated_reasoning = ""
 
         elif event["type"] == "usage":
             if not model_name:
@@ -34,7 +53,11 @@ async def main(question, verbose=False):
             completion_tokens += int(event["usage"]["completion_tokens"])
 
         elif event["type"] == "trace":
-            log(f"[{event['stage']}] {event['message']}")
+            log(
+                msg=f"[{event['stage']}] {event['message']}",
+                need_newline_first=last_print_char != "\n",
+            )
+            last_print_char = "\n"
 
         elif event["type"] == "tool":
             tool_name = event.get("tool_name")
@@ -51,13 +74,18 @@ async def main(question, verbose=False):
 
             prefix = f"[工具] {tool_name} {stage}"
             if text_content:
-                text_content = (
-                    f"`{text_content[:60]}...`"
-                    if len(text_content) > 60
-                    else f"`{text_content}`"
-                )
                 text_content_with_format = f" [bold bright_blue]{text_content}[/]"
-            log(f"{prefix}{text_content_with_format}")
+                if stage != "→":
+                    text_content_with_format = (
+                        f"{truncate_by_width_approx(text_content_with_format, 140)}..."
+                        if display_width(text_content_with_format) > 140
+                        else f"{text_content_with_format}"
+                    )
+            log(
+                msg=f"{prefix}{text_content_with_format}",
+                need_newline_first=last_print_char != "\n",
+            )
+            last_print_char = "\n"
 
         # debug
         elif event["type"] == "debug":

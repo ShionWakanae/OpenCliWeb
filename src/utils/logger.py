@@ -48,7 +48,7 @@ class Logger:
 
         return f"{hours}h{minutes:02d}m{seconds:02d}s"
 
-    def log(self, msg, display_last_log_interval=True):
+    def log(self, msg, display_last_log_interval=True, need_newline_first=False):
         now = datetime.datetime.now()
         timestamp_str = now.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         if self._last_timestamp:
@@ -62,7 +62,8 @@ class Logger:
             interval_str = f"  <[purple]{self.format_duration(delta_ms)}[/]>"
 
         self._last_timestamp = now
-        print(f"[{timestamp_str}] {msg}{interval_str}")
+        newline_str = "\n" if need_newline_first else ""
+        print(f"{newline_str}[{timestamp_str}] {msg}{interval_str}")
 
 
 logger = Logger()
