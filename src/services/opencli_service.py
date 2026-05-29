@@ -1,5 +1,6 @@
 import time
 import traceback
+import re
 from openai import AsyncOpenAI
 from utils.settings import settings
 from opencli.IntelligentAgent import IntelligentCLIAgent
@@ -78,13 +79,36 @@ class OpenCLIService:
             }
 
             # 记录检查结果
-            all_ok = True
-            for component, status in checks.items():
-                if status:
-                    log(f"[Service] opencli {component}: OK ✓")
-                else:
-                    # log(f"[Service] ✗ {component}: FAILED", False)
-                    all_ok = False
+            check_profile_connect = False
+            while True:
+                all_ok = True
+                for component, status in checks.items():
+                    if status:
+                        log(f"[Service] opencli ✓ {component}: [green]OK[/]", False)
+                    else:
+                        log(f"[Service] opencli ✗ {component}: [red]FAILED[/]", False)
+                        all_ok = False
+
+                if all_ok:
+                    break
+                if check_profile_connect:
+                    break
+
+                check_profile_connect = True
+                pattern2 = r'Browser profile "([^"]+)" is not connected'
+                match2 = re.search(pattern2, output)
+                if match2:
+                    profile_id = match2.group(1)
+                    log(f"[Service] try use profile `{profile_id}` ...")
+                    r = self._cli_tool._execute_any_command(
+                        f"opencli profile use {profile_id}"
+                    )
+                    if not r.success:
+                        log(r.error, False)
+                        log(
+                            "[Service] opencli profile use failed, please check!",
+                            False,
+                        )
 
             # 如果有任何检查失败，则退出
             if not all_ok:
