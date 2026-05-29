@@ -4,6 +4,7 @@ import traceback
 import markdown
 from nicegui import ui, app, context, background_tasks
 from rich import print
+import time
 from services.opencli_service import service
 from utils.logger import logger
 from utils.settings import settings, version_num
@@ -557,12 +558,17 @@ def main():
                     trace_message_content = ""
                     assistant_message_content = ""
 
+                    first_token = False
+                    streaming_start = time.perf_counter()
                     async for event in service.stream_answer(message):
                         if event is None:
                             break
 
                         # token
                         if event["type"] == "token":
+                            if not first_token:
+                                first_token = True
+                                streaming_start = time.perf_counter()
                             got_answer = True
                             if (
                                 assistant_stage_spinner
@@ -702,6 +708,12 @@ def main():
                     trace_expansion.close()
                     trace_message_ui.update()
                     auto_scroll_chat(client)
+
+                    streaming_s = round(
+                        (time.perf_counter() - streaming_start),
+                        2,
+                    )
+
                     log("Answer completed")
                     log("----------------")
                     log(
@@ -709,7 +721,8 @@ def main():
                         False,
                     )
                     log(
-                        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens} <[bold bright_green]{model_name}[/]>",
+                        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens} <[bold bright_green]{model_name}[/]>"
+                        + f" <{round(int(completion_tokens) / streaming_s, 2)} tokens/s>",
                         False,
                     )
                     print()

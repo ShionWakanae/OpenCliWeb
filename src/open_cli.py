@@ -1,5 +1,6 @@
 import asyncio
 import argparse
+import time
 from rich import print
 from utils.charstrings import display_width, truncate_by_width_approx
 from services.opencli_service import service
@@ -13,17 +14,24 @@ async def main(question, verbose=False):
     accumulated_reasoning = ""
     got_answer = False
     first_token = False
+    first_reasoning = False
     timing = {}
     model_name = ""
     prompt_tokens = 0
     completion_tokens = 0
     last_print_char = ""
+    streaming_start = time.perf_counter()
     async for event in service.stream_answer(question, verbose=verbose):
         if event["type"] == "token":
             chunk = event["text"]
-            if first_token:
-                log("Streaming...")
-                first_token = False
+            if not first_token:
+                log(
+                    "Streaming...",
+                    need_newline_first=last_print_char != "\n",
+                )
+                last_print_char = "\n"
+                first_token = True
+                streaming_start = time.perf_counter()
             accumulated += chunk
             # 遇到句号、感叹号、问号或换行时输出
             if "\n" in accumulated or len(accumulated) > 23:
@@ -33,9 +41,9 @@ async def main(question, verbose=False):
 
         elif event["type"] == "reasoning":
             chunk = event["text"]
-            if first_token:
-                log("Streaming...")
-                first_token = False
+            if not first_reasoning:
+                log("Reasoning...")
+                first_reasoning = True
             accumulated_reasoning += chunk
             if "\n" in accumulated_reasoning or len(accumulated_reasoning) > 23:
                 print(
@@ -99,6 +107,11 @@ async def main(question, verbose=False):
         print(f"[bold bright_magenta]{accumulated}[/]", flush=True)
         print()
 
+    streaming_s = round(
+        (time.perf_counter() - streaming_start),
+        2,
+    )
+
     if got_answer:
         log("Answer completed")
     else:
@@ -108,7 +121,8 @@ async def main(question, verbose=False):
         False,
     )
     log(
-        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens} <[bold bright_green]{model_name}[/]>",
+        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens} <[bold bright_green]{model_name}[/]>"
+        + f" <{round(int(completion_tokens) / streaming_s, 2)} tokens/s>",
         False,
     )
     log("All done ✅")
