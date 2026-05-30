@@ -109,6 +109,8 @@ class OpenCLIService:
                             "[Service] opencli profile use failed, please check!",
                             False,
                         )
+                    else:
+                        log(r.stdout.strip())
 
             # 如果有任何检查失败，则退出
             if not all_ok:
