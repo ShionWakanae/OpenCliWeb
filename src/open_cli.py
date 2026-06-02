@@ -120,9 +120,10 @@ async def main(question, verbose=False):
         f"Retrieval: {timing.get('query_ms', 0)} ms, Answers: {timing.get('llm_ms', 0)} ms, Total: {timing.get('total_ms', 0)} ms",
         False,
     )
+    tps = 0 if streaming_s == 0 else round(int(completion_tokens) / streaming_s, 2)
     log(
         f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens} <[bold bright_green]{model_name}[/]>"
-        + f" <{round(int(completion_tokens) / streaming_s, 2)} tokens/s>",
+        + f" <{tps} tokens/s>",
         False,
     )
     log("All done ✅")
