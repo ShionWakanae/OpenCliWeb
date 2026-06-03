@@ -662,8 +662,6 @@ def main():
 
                             if stage == "→" and kwargs:
                                 text_content = str(kwargs)
-                            if stage != "→" and tool_name == "opencli_list":
-                                text_content = f"{len(text_content.split())} sites"
 
                             text_content_with_format = text_content
                             prefix = f"- **[工具]** {tool_name} {stage}"

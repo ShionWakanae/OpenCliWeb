@@ -76,9 +76,6 @@ async def main(question, verbose=False):
             text_content_with_format = text_content
             if stage == "→" and kwargs:
                 stage = f"{stage} {kwargs}"
-            if stage != "→" and tool_name == "opencli_list":
-                text_content = f"{len(text_content.split())} sites"
-                text_content_with_format = text_content
 
             prefix = f"[工具] {tool_name} {stage}"
             if text_content:
