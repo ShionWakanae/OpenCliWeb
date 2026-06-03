@@ -559,6 +559,8 @@ def main():
                     assistant_message_content = ""
 
                     first_token = False
+                    first_reasoning = False
+                    last_print_char = ""
                     streaming_start = time.perf_counter()
                     async for event in service.stream_answer(message):
                         if event is None:
@@ -567,6 +569,7 @@ def main():
                         # token
                         if event["type"] == "token":
                             if not first_token:
+                                log("Streaming...")
                                 first_token = True
                                 streaming_start = time.perf_counter()
                             got_answer = True
@@ -591,6 +594,9 @@ def main():
                                 auto_scroll_chat(client)
 
                         elif event["type"] == "reasoning":
+                            if not first_reasoning:
+                                log("Reasoning...")
+                                first_reasoning = True
                             trace_message_content += event["text"]
                             trace_message_ui.content = render_markdown_html(
                                 trace_message_content
@@ -615,6 +621,11 @@ def main():
                                 "" if not trace_timing else f"(_{trace_timing}ms_)"
                             )
                             log(msg_str)
+                            if (
+                                len(trace_message_content) > 0
+                                and trace_message_content[-1] != "\n"
+                            ):
+                                trace_message_content += "\n"
                             trace_message_content += f"{msg_str} {timing_str}\n"
                             assistant_message.content = ""
                             trace_message_ui.content = render_markdown_html(
@@ -673,6 +684,11 @@ def main():
                                     )
 
                             log(f"{prefix}{text_content_with_format}")
+                            if (
+                                len(trace_message_content) > 0
+                                and trace_message_content[-1] != "\n"
+                            ):
+                                trace_message_content += "\n"
                             trace_message_content += f"{prefix}{text_content}" + "\n"
                             assistant_message.content = ""
                             trace_message_ui.content = render_markdown_html(
