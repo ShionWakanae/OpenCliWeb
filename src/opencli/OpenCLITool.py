@@ -213,17 +213,47 @@ class OpenCLITool:
     # tools
     def _register_all_tools(self):
 
+        # list
+        def opencli_sites_list():
+            r = self._execute_opencli_command("list")
+            if not r.success:
+                return r.error
+
+            sites = []
+            for line in r.stdout.splitlines():
+                if re.match(
+                    r"^  \S+\s*$",
+                    line,
+                ):
+                    sites.append(line.strip())
+
+            return "\n".join(sites)
+
+        self.register(
+            name="opencli_sites_list",
+            description=dedent("""\
+                仅列出支持的网站。
+                不要用来查看具体命令。
+                查看命令请调用 opencli_site_help
+            """),
+            schema={
+                "type": "object",
+                "properties": {},
+            },
+            fn=opencli_sites_list,
+        )
+
         # help
-        def opencli_help(command):
-            command = command.replace("_", " ")
-            r = self._execute_opencli_command(f"{command} --help", format_output="yaml")
+        def opencli_site_help(site):
+            site = site.replace("_", " ")
+            r = self._execute_opencli_command(f"{site} --help", format_output="yaml")
             if r.success:
                 return r.stdout
 
             return r.error
 
         self.register(
-            name="opencli_help",
+            name="opencli_site_help",
             description=dedent("""\
                 查看某个网站支持哪些操作。
 
@@ -244,14 +274,14 @@ class OpenCLITool:
             """),
             schema={
                 "type": "object",
-                "properties": {"command": {"type": "string"}},
-                "required": ["command"],
+                "properties": {"site": {"type": "string"}},
+                "required": ["site"],
             },
-            fn=opencli_help,
+            fn=opencli_site_help,
         )
 
         # execute
-        def opencli_execute(subcommand, result_limit: int | None = None):
+        def opencli_execute(site_cmd, result_limit: int | None = None):
             try:
                 result_limit = int(result_limit) if result_limit is not None else None
             except (TypeError, ValueError):
@@ -262,10 +292,10 @@ class OpenCLITool:
                 "cmd ",
                 "cmd /c ",
             ):
-                if subcommand.startswith(p):
-                    subcommand = subcommand[len(p) :]
+                if site_cmd.startswith(p):
+                    site_cmd = site_cmd[len(p) :]
 
-            r = self._execute_opencli_command(subcommand, format_output="yaml")
+            r = self._execute_opencli_command(site_cmd, format_output="yaml")
             result = r.to_dict()
             try:
                 data = result["data"]
@@ -296,21 +326,21 @@ class OpenCLITool:
         self.register(
             name="opencli_execute",
             description=dedent("""\
-                ## subcommand
+                ## site_cmd
                 执行某个网站命令
                 
-                格式:
+                网站命令的格式:
                 (site) (command)
                 
                 或:
                 (site) (command) --limit=(条数)    
                 
-                说明: 如果subcommand支持可选的 <limit> 选项，且用户表达了对返回条数的需求。
+                说明: 如果site_cmd支持可选的 <limit> 选项，且用户表达了对返回条数的需求。
                 这里的 --limit 可增加或减少实际返回的结果数量。
 
                 比如:
-                subcommand = bilibili history
-                subcommand = zhihu hot --limit=5
+                site_cmd = bilibili history
+                site_cmd = zhihu hot --limit=5
 
                 不要输入：
                 opencli
@@ -318,14 +348,14 @@ class OpenCLITool:
                 -f 格式
                 系统会自动补充。
 
-                不要输入subcommand字符串本身，比如:
-                subcommand = subcommand=bilibili history
+                不要输入site_cmd字符串本身，比如错误的例子:
+                site_cmd = site_cmd=bilibili history
 
                 ## result_limit
                 后期限制(仅减少)返回结果的数量。
                 
-                如果subcommand不支持 <limit> 选项,但用户表达了限制条数,则传入 result_limit 参数。
-                如果subcommand支持 <limit> 选项,则不传入 result_limit 参数。
+                如果site_cmd不支持 <limit> 选项,但用户表达了限制条数,则传入 result_limit 参数。
+                如果site_cmd支持 <limit> 选项,则不传入 result_limit 参数。
                 
                 例如：
                 result_limit = 10
@@ -333,42 +363,12 @@ class OpenCLITool:
             schema={
                 "type": "object",
                 "properties": {
-                    "subcommand": {"type": "string"},
+                    "site_cmd": {"type": "string"},
                     "result_limit": {"type": "integer"},
                 },
-                "required": ["subcommand"],
+                "required": ["site_cmd"],
             },
             fn=opencli_execute,
-        )
-
-        # list
-        def opencli_list():
-            r = self._execute_opencli_command("list")
-            if not r.success:
-                return r.error
-
-            sites = []
-            for line in r.stdout.splitlines():
-                if re.match(
-                    r"^  \S+\s*$",
-                    line,
-                ):
-                    sites.append(line.strip())
-
-            return "\n".join(sites)
-
-        self.register(
-            name="opencli_list",
-            description=dedent("""\
-                仅列出支持的网站。
-                不要用来查看具体命令。
-                查看命令请调用 opencli_help。
-            """),
-            schema={
-                "type": "object",
-                "properties": {},
-            },
-            fn=opencli_list,
         )
 
         # date

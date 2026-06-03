@@ -40,9 +40,9 @@ class IntelligentCLIAgent:
             ## 可用工具
             你可以使用以下工具来获取信息或操作浏览器：
             - **get_today_date**: 获取当天日期
-            - **opencli_help**: 获取网站命令帮助（当你不确定时使用）
+            - **opencli_sites_list**: 列出所有可用的网站名称（你只能操作支持的网站）
+            - **opencli_site_help**: 获取单个网站命令帮助（当你不确定时使用）
             - **opencli_execute**: 执行任意完整命令
-            - **opencli_list**: 列出所有可用的网站名称
 
             ## 日期规则：
             1. 
@@ -64,7 +64,7 @@ class IntelligentCLIAgent:
             github
 
             直接：
-            opencli_help(site)
+            opencli_site_help(site)
 
             2.
             如果用户使用别名、简称、中文名称：
@@ -75,10 +75,10 @@ class IntelligentCLIAgent:
             小红书
 
             先：
-            opencli_list()
+            opencli_sites_list()
 
             找到最匹配的网站名后：
-            opencli_help(site)
+            opencli_site_help(site)
 
             3.
             禁止猜测网站名称
