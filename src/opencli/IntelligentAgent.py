@@ -3,7 +3,7 @@ import json
 import traceback
 from typing import Optional
 from textwrap import dedent
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, APIError
 from opencli.OpenCLITool import OpenCLITool
 from utils.logger import logger
 
@@ -36,6 +36,8 @@ class IntelligentCLIAgent:
         """获取系统提示词"""
         return dedent("""\
             你是一个智能助手，能够使用 OpenCLI 工具来操作各种网站
+            请根据工具返回的内容来回答用户问题。
+            不要自己编造内容。
 
             ## 可用工具
             你可以使用以下工具来获取信息或操作浏览器：
@@ -82,7 +84,8 @@ class IntelligentCLIAgent:
 
             3.
             禁止猜测网站名称
-            如果无法确认，必须先 list
+            如果无法确认，必须先 list 所有可用的网站名称
+            不要重复调用 list。
 
             例子：
 
@@ -162,68 +165,96 @@ class IntelligentCLIAgent:
             content = ""
             tool_calls = {}
             async for chunk in stream:
-                # usage chunk
-                if chunk.usage:
-                    yield {
-                        "type": "usage",
-                        "usage": chunk.usage.model_dump(),
-                        "model": chunk.model.replace(".gguf", ""),
-                    }
-                    continue
+                try:
+                    # usage chunk
+                    if chunk.usage:
+                        yield {
+                            "type": "usage",
+                            "usage": chunk.usage.model_dump(),
+                            "model": chunk.model.replace(".gguf", ""),
+                        }
+                        continue
 
-                if not chunk.choices:
-                    continue
+                    if not chunk.choices:
+                        continue
 
-                delta = chunk.choices[0].delta
+                    delta = chunk.choices[0].delta
 
-                reasoning = ""
-                if hasattr(delta, "reasoning_content") and delta.reasoning_content:
-                    if not is_answering:
-                        reasoning = delta.reasoning_content
-                if hasattr(delta, "reasoning") and delta.reasoning:
-                    if not is_answering:
-                        reasoning = delta.reasoning
+                    reasoning = ""
+                    if hasattr(delta, "reasoning_content") and delta.reasoning_content:
+                        if not is_answering:
+                            reasoning = delta.reasoning_content
+                    if hasattr(delta, "reasoning") and delta.reasoning:
+                        if not is_answering:
+                            reasoning = delta.reasoning
 
-                if not is_answering and reasoning:
-                    yield {
-                        "type": "reasoning",
-                        "text": reasoning,
-                    }
-                # 普通文本
-                if hasattr(delta, "content") and delta.content:
-                    content += delta.content
-                    yield {
-                        "type": "token",
-                        "text": delta.content,
-                    }
-                    if not is_answering:
-                        is_answering = True
+                    if not is_answering and reasoning:
+                        yield {
+                            "type": "reasoning",
+                            "text": reasoning,
+                        }
+                    # 普通文本
+                    if hasattr(delta, "content") and delta.content:
+                        content += delta.content
+                        yield {
+                            "type": "token",
+                            "text": delta.content,
+                        }
+                        if not is_answering:
+                            is_answering = True
 
-                # tool call
-                if delta.tool_calls:
-                    for tc in delta.tool_calls:
-                        idx = tc.index
+                    # tool call
+                    if delta.tool_calls:
+                        for tc in delta.tool_calls:
+                            idx = tc.index
 
-                        if idx not in tool_calls:
-                            tool_calls[idx] = {
-                                "id": "",
-                                "name": "",
-                                "args": "",
-                            }
-                        if tc.id:
-                            tool_calls[idx]["id"] += tc.id
-                        if tc.function:
-                            if tc.function.name:
-                                tool_calls[idx]["name"] += tc.function.name
-                            if tc.function.arguments:
-                                tool_calls[idx]["args"] += tc.function.arguments
-
+                            if idx not in tool_calls:
+                                tool_calls[idx] = {
+                                    "id": "",
+                                    "name": "",
+                                    "args": "",
+                                }
+                            if tc.id:
+                                tool_calls[idx]["id"] += tc.id
+                            if tc.function:
+                                if tc.function.name:
+                                    tool_calls[idx]["name"] += tc.function.name
+                                if tc.function.arguments:
+                                    tool_calls[idx]["args"] += tc.function.arguments
+                except Exception as e:
+                    if "Failed to parse input" in str(e):
+                        log(f"error:{e}")
+                        yield {
+                            "type": "trace",
+                            "stage": "异常",
+                            "message": f"{content} : {e}",
+                            "timing": 0,
+                        }
+                        continue
+                    else:
+                        raise
             # finish
             if not tool_calls:
-                yield {
-                    "type": "done",
-                    "text": content,
-                }
+                if any(
+                    keyword in content
+                    for keyword in ["Failed to parse input", "Traceback", "APIError"]
+                ):
+                    log("error in content!")
+                    yield {
+                        "type": "trace",
+                        "stage": "异常",
+                        "message": content,
+                        "timing": 0,
+                    }
+                    yield {
+                        "type": "token",
+                        "text": "输出结果中包含了异常信息！",
+                    }
+                else:
+                    yield {
+                        "type": "done",
+                        "text": content,
+                    }
                 return
 
             # assistant（只追加一次）
@@ -299,6 +330,12 @@ class IntelligentCLIAgent:
                 )
 
         print("tool loop overflow !!!")
+        yield {
+            "type": "trace",
+            "stage": "异常",
+            "message": "工具调用循环溢出:工具调用次数过多却没有得到最终结果。",
+            "timing": 0,
+        }
 
     # public
     def chat(self, message):
