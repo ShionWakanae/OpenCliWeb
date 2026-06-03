@@ -116,6 +116,19 @@ class OpenCLITool:
         command,
         format_output="",
     ):
+
+        def remove_browser_common_options(obj):
+            """递归删除所有 browser_common_options 字段"""
+            if isinstance(obj, dict):
+                if "browser_common_options" in obj:
+                    del obj["browser_common_options"]
+                for key, value in obj.items():
+                    obj[key] = remove_browser_common_options(value)
+            elif isinstance(obj, list):
+                for i, item in enumerate(obj):
+                    obj[i] = remove_browser_common_options(item)
+            return obj
+
         format_output = format_output.lower()
         cmd = ["cmd", "/c", *self.base_args, *shlex.split(command)]
         if format_output and "-f" not in command and "--format" not in command:
@@ -170,6 +183,12 @@ class OpenCLITool:
                         data = json.loads(result.stdout)
                     if format_output == "yaml":
                         data = yaml.safe_load(result.stdout)
+
+                    if data:
+                        data = remove_browser_common_options(data)
+                        # print(data)
+                        # print(result.stdout)
+
                 except Exception:
                     if self.verbose:
                         print(traceback.format_exc())
