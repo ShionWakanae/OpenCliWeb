@@ -186,8 +186,6 @@ class OpenCLITool:
 
                     if data:
                         data = remove_browser_common_options(data)
-                        # print(data)
-                        # print(result.stdout)
 
                 except Exception:
                     if self.verbose:
@@ -267,7 +265,16 @@ class OpenCLITool:
             site = site.replace("_", " ").lower()
             r = self._execute_opencli_command(f"{site} --help", format_output="yaml")
             if r.success:
-                return r.stdout
+                if r.data:
+                    if r.data_format == "json":
+                        data_str = json.dumps(r.data)
+                    if r.data_format == "yaml":
+                        data_str = yaml.safe_dump(r.data)
+                    else:
+                        data_str = r.stdout
+                    return data_str
+                else:
+                    return r.stdout
 
             return r.error
 

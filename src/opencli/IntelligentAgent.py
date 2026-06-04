@@ -333,7 +333,7 @@ class IntelligentCLIAgent:
                     "tool_name": name,
                     "message": name,
                     "kwargs": args,
-                    "text_content": text,
+                    "text_content": f"({len(text)}) {text}",
                 }
 
                 messages.append(
