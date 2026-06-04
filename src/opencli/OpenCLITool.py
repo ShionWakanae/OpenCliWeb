@@ -92,6 +92,7 @@ class OpenCLITool:
 
         self._functions = {}
         self._schemas = {}
+        self._sites = self._sites_list()
         self._register_all_tools()
 
     def _execute_any_command(
@@ -238,6 +239,23 @@ class OpenCLITool:
                 error=str(e),
             )
 
+    # list sites
+    def _sites_list(self):
+        r = self._execute_opencli_command("list")
+        if not r.success:
+            log(r.error)
+            raise Exception(r.error)
+
+        sites = []
+        for line in r.stdout.splitlines():
+            if re.match(
+                r"^  \S+\s*$",
+                line,
+            ):
+                sites.append(line.strip())
+
+        return "\n".join(sites)
+
     # register
     def register(self, *, name, description, schema, fn):
         self._functions[name] = fn
@@ -252,34 +270,6 @@ class OpenCLITool:
 
     # tools
     def _register_all_tools(self):
-
-        # list sites
-        def sites_list():
-            r = self._execute_opencli_command("list")
-            if not r.success:
-                return r.error
-
-            sites = []
-            for line in r.stdout.splitlines():
-                if re.match(
-                    r"^  \S+\s*$",
-                    line,
-                ):
-                    sites.append(line.strip())
-
-            return "\n".join(sites)
-
-        self.register(
-            name="sites_list",
-            description=dedent("""\
-                列出支持的全部网站(sites)
-            """),
-            schema={
-                "type": "object",
-                "properties": {},
-            },
-            fn=sites_list,
-        )
 
         # list cmds of one site
         def site_cmds_list(site):
