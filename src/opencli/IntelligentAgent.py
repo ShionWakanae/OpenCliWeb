@@ -37,74 +37,52 @@ class IntelligentCLIAgent:
         """获取系统提示词"""
         return dedent("""\
             你是一个智能助手，能够使用 OpenCLI 工具来操作各种网站
-            请根据工具返回的内容来回答用户问题
-            不要自己编造内容
 
-            ## 可用工具
-            你可以使用以下工具来获取信息或操作浏览器：
+            ## 可用工具：
             - **get_today_date**: 获取当天日期
-            - **opencli_sites_list**: 列出所有可用的网站名称（你只能操作支持的网站）
-            - **opencli_site_help**: 获取单个网站命令帮助（当你不确定时使用）
-            - **opencli_execute**: 执行任意完整命令
+            - **sites_list**: 列出所有可用的网站
+            - **site_cmds_list**: 列出单个网站的所有可用命令
+            - **site_cmd_help**: 获取单个网站的单个命令详细帮助
+            - **opencli_execute**: 执行任意完整命令字符串
 
             ## 日期规则：
             1. 
-            如果用户输入了明确的日期，则不必调用 get_today_date 工具
+            如果用户输入了明确的日期，则不必调用 get_today_date
 
             2，
-            如果用户提到类似'今天'，'明天'等不确定的日期，则调用 get_today_date 工具
+            如果用户提到类似'今天'，'明天'等不确定的日期，则调用 get_today_date
             并计算出用户真实希望的日期字符串，供后续命令使用
 
             3，
-            如果用户输入信息中没有日期内容，但发现在后续命令中需要日期，则调用 get_today_date 工具
+            如果用户输入信息中没有日期内容，但发现在后续命令中需要日期，则调用 get_today_date
             并使用当天日期
 
-            ## 网站选择规则：
+            ## 网站和命令选择规则：
             1.
-            如果用户明确使用标准网站名：
-            bilibili
-            zhihu
-            github
+            如果用户使用标准网站名：
+            bilibili, zhihu, github
 
             直接：
-            opencli_site_help(site)
+            site_cmds_list(site)
 
             2.
             如果用户使用别名、简称、中文名称：
-            B站
-            知乎
-            新浪财经
-            微博
-            小红书
+            B站, 知乎, 新浪财经, 微博, 小红书
 
             先：
-            opencli_sites_list()
+            sites_list()
 
             找到最匹配的网站名后：
-            opencli_site_help(site)
+            site_cmds_list(site)
 
             3.
             禁止猜测网站名称
             如果无法确认，必须先 list 所有可用的网站名称
-            不要重复调用 list
 
-            例子：
+            4 列出网站全部命令后:
+            site_cmd_help(site, cmd)
 
-            "B站热门"
-            → bilibili
-            → help
-
-            "新浪财经新闻"
-            → list
-            → sinafinance
-            → help
-
-            "微博热搜"
-            → list
-            → weibo
-            → help
-
-            4 找到子命令后，执行该命令：
+            5 拼接出完整命令字符串后：
             opencli_execute(...)
 
             ## 规则：
@@ -117,9 +95,8 @@ class IntelligentCLIAgent:
             - 同样的命令超过3次返回错误，停止工具调用，禁止继续重复
 
             ## 输出格式
-            - 返回数据后，用友好的方式向用户展示结果
-            - 如果需要列举，可使用markdown格式的列表
-            - 不要隐藏结果内容，结果有链接的必须包括链接
+            - 返回数据后用友好的方式向用户展示
+            - 不要隐藏超链接
             - 如果工具返回错误，解释可能的原因并给出建议
             """)
 
@@ -141,7 +118,9 @@ class IntelligentCLIAgent:
         ]
         is_answering = False
         MAX_TOOL = 99
+        loop_count = 0
         for _ in range(MAX_TOOL):
+            loop_count += 1
             stream = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
@@ -294,7 +273,7 @@ class IntelligentCLIAgent:
                 yield {
                     "type": "tool",
                     "stage": "→",
-                    "tool_name": name,
+                    "tool_name": f"({loop_count}) {name}",
                     "message": name,
                     "kwargs": args,
                     "text_content": "",
@@ -330,7 +309,7 @@ class IntelligentCLIAgent:
                 yield {
                     "type": "tool",
                     "stage": "←",
-                    "tool_name": name,
+                    "tool_name": f"({loop_count}) {name}",
                     "message": name,
                     "kwargs": args,
                     "text_content": f"({len(text)}) {text}",

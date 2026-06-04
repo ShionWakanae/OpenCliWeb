@@ -61,6 +61,20 @@ def remove_fields(obj, fields_to_remove):
     return obj
 
 
+def keep_fields(obj, fields_to_keep):
+    """递归只保留指定列表中的字段，删除其他字段"""
+    if isinstance(obj, dict):
+        fields_to_delete = [key for key in obj.keys() if key not in fields_to_keep]
+        for field in fields_to_delete:
+            del obj[field]
+        for key, value in obj.items():
+            obj[key] = keep_fields(value, fields_to_keep)
+    elif isinstance(obj, list):
+        for i, item in enumerate(obj):
+            obj[i] = keep_fields(item, fields_to_keep)
+    return obj
+
+
 class OpenCLITool:
     def __init__(self, profile=None, verbose=False, timeout=90, on_execute=None):
         self.profile = profile
@@ -239,8 +253,8 @@ class OpenCLITool:
     # tools
     def _register_all_tools(self):
 
-        # list
-        def opencli_sites_list():
+        # list sites
+        def sites_list():
             r = self._execute_opencli_command("list")
             if not r.success:
                 return r.error
@@ -256,28 +270,61 @@ class OpenCLITool:
             return "\n".join(sites)
 
         self.register(
-            name="opencli_sites_list",
+            name="sites_list",
             description=dedent("""\
-                仅列出支持的网站
-                不要用来查看具体命令
-                查看命令请调用 opencli_site_help
+                列出支持的全部网站(sites)
             """),
             schema={
                 "type": "object",
                 "properties": {},
             },
-            fn=opencli_sites_list,
+            fn=sites_list,
         )
 
-        # help
-        def opencli_site_help(site):
-            site = site.replace("_", " ").lower()
+        # list cmds of one site
+        def site_cmds_list(site):
             r = self._execute_opencli_command(f"{site} --help", format_output="yaml")
             if not r.success:
                 return r.error
             if r.data:
                 data = r.data
                 fields = [
+                    "site",
+                    "commands",
+                    "name",
+                    "description",
+                ]
+                data = keep_fields(data, fields)
+
+                # print(data)
+                return data
+
+            return r.stdout
+
+        self.register(
+            name="site_cmds_list",
+            description=dedent("""\
+                列出单个网站(site)支持的全部命令(cmds)
+            """),
+            schema={
+                "type": "object",
+                "properties": {"site": {"type": "string"}},
+                "required": ["site"],
+            },
+            fn=site_cmds_list,
+        )
+
+        # help
+        def site_cmd_help(site, cmd):
+            r = self._execute_opencli_command(
+                f"{site} {cmd} --help", format_output="yaml"
+            )
+            if not r.success:
+                return r.error
+            if r.data:
+                data = r.data
+                fields = [
+                    "site",
                     "browser_common_options",
                     "common_options",
                     "next",
@@ -288,6 +335,8 @@ class OpenCLITool:
                     "access",
                     "domain",
                     "browser",
+                    "description",
+                    "output_formats",
                 ]
                 data = remove_fields(data, fields)
 
@@ -306,31 +355,34 @@ class OpenCLITool:
             return r.stdout
 
         self.register(
-            name="opencli_site_help",
+            name="site_cmd_help",
             description=dedent("""\
-                查看某个网站支持哪些操作，网站名称大小写敏感
+                查看单个网站(site)的单个命令(cmd)的帮助信息
 
                 输入：
-                网站名(site)
+                网站名(site), 命令(cmd)
 
                 例如：
-                bilibili
-                zhihu
+                bilibili hot
+                zhihu search
 
                 不要输入：
-                opencli bilibili
+                opencli bilibili hot
                 cmd /c
 
                 返回：
-                该网站支持的子命令列表
+                该网站(site)的命令(cmd)的详细帮助信息
                 包括子命令是否支持'limit'选项(command_options)
             """),
             schema={
                 "type": "object",
-                "properties": {"site": {"type": "string"}},
-                "required": ["site"],
+                "properties": {
+                    "site": {"type": "string"},
+                    "cmd": {"type": "string"},
+                },
+                "required": ["site", "cmd"],
             },
-            fn=opencli_site_help,
+            fn=site_cmd_help,
         )
 
         # execute
@@ -391,13 +443,13 @@ class OpenCLITool:
             name="opencli_execute",
             description=dedent("""\
                 ## site_cmd
-                执行某个网站命令，网站名称和命令大小写敏感                
+                执行某个完整命令字符串，大小写敏感                
                 
-                网站命令的格式:
-                (site) (command)
+                完整命令字符串的拼接格式:
+                (site) (command) <可选options>
                 
                 或:
-                (site) (command) --limit=(条数)    
+                (site) (command) <可选options> --limit=(条数)    
                 
                 说明: 如果site_cmd支持可选的 <limit> 选项，且用户表达了对返回条数的需求
                 使用 --limit 可增加或减少实际返回的结果数量
@@ -405,6 +457,7 @@ class OpenCLITool:
                 比如:
                 site_cmd = bilibili history
                 site_cmd = zhihu hot --limit=5
+                site_cmd = 12306 trains --from=成都东 --to=北京西 --date=2026-06-05
 
                 不要输入：
                 opencli
