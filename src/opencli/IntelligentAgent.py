@@ -163,63 +163,76 @@ class IntelligentCLIAgent:
             )
 
             content = ""
+            reasoning = ""
             tool_calls = {}
-            async for chunk in stream:
-                # usage chunk
-                if chunk.usage:
+            try:
+                async for chunk in stream:
+                    # usage chunk
+                    if chunk.usage:
+                        yield {
+                            "type": "usage",
+                            "usage": chunk.usage.model_dump(),
+                            "model": chunk.model.replace(".gguf", ""),
+                        }
+                        continue
+
+                    if not chunk.choices:
+                        continue
+
+                    delta = chunk.choices[0].delta
+
+                    tmp_reasoning = ""
+                    if hasattr(delta, "reasoning_content") and delta.reasoning_content:
+                        tmp_reasoning = delta.reasoning_content
+                    if hasattr(delta, "reasoning") and delta.reasoning:
+                        tmp_reasoning = delta.reasoning
+
+                    if tmp_reasoning:
+                        reasoning += tmp_reasoning
+                        yield {
+                            "type": "reasoning",
+                            "text": tmp_reasoning,
+                        }
+                    # 普通文本
+                    if hasattr(delta, "content") and delta.content:
+                        content += delta.content
+                        yield {
+                            "type": "token",
+                            "text": delta.content,
+                        }
+                        if not is_answering:
+                            is_answering = True
+
+                    # tool call
+                    if delta.tool_calls:
+                        for tc in delta.tool_calls:
+                            idx = tc.index
+
+                            if idx not in tool_calls:
+                                tool_calls[idx] = {
+                                    "id": "",
+                                    "name": "",
+                                    "args": "",
+                                }
+                            if tc.id:
+                                tool_calls[idx]["id"] += tc.id
+                            if tc.function:
+                                if tc.function.name:
+                                    tool_calls[idx]["name"] += tc.function.name
+                                if tc.function.arguments:
+                                    tool_calls[idx]["args"] += tc.function.arguments
+            except Exception as e:
+                if "Failed to parse input" in str(e):
+                    log(f"error : {e}")
                     yield {
-                        "type": "usage",
-                        "usage": chunk.usage.model_dump(),
-                        "model": chunk.model.replace(".gguf", ""),
+                        "type": "trace",
+                        "stage": "异常",
+                        "message": f"({content}) : {e}",
+                        "timing": 0,
                     }
                     continue
-
-                if not chunk.choices:
-                    continue
-
-                delta = chunk.choices[0].delta
-
-                reasoning = ""
-                if hasattr(delta, "reasoning_content") and delta.reasoning_content:
-                    if not is_answering:
-                        reasoning = delta.reasoning_content
-                if hasattr(delta, "reasoning") and delta.reasoning:
-                    if not is_answering:
-                        reasoning = delta.reasoning
-
-                if not is_answering and reasoning:
-                    yield {
-                        "type": "reasoning",
-                        "text": reasoning,
-                    }
-                # 普通文本
-                if hasattr(delta, "content") and delta.content:
-                    content += delta.content
-                    yield {
-                        "type": "token",
-                        "text": delta.content,
-                    }
-                    if not is_answering:
-                        is_answering = True
-
-                # tool call
-                if delta.tool_calls:
-                    for tc in delta.tool_calls:
-                        idx = tc.index
-
-                        if idx not in tool_calls:
-                            tool_calls[idx] = {
-                                "id": "",
-                                "name": "",
-                                "args": "",
-                            }
-                        if tc.id:
-                            tool_calls[idx]["id"] += tc.id
-                        if tc.function:
-                            if tc.function.name:
-                                tool_calls[idx]["name"] += tc.function.name
-                            if tc.function.arguments:
-                                tool_calls[idx]["args"] += tc.function.arguments
+                else:
+                    raise
 
             # finish
             if not tool_calls:
@@ -249,6 +262,7 @@ class IntelligentCLIAgent:
             messages.append(
                 {
                     "role": "assistant",
+                    "reasoning": reasoning,
                     "content": content,
                     "tool_calls": [
                         {

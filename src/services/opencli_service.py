@@ -211,7 +211,7 @@ class OpenCLIService:
             error_message = get_error_message(e)
             yield {
                 "type": "token",
-                "text": f"📛错误：{error_message}",
+                "text": f"📛错误：{error_message}\n",
             }
             yield {
                 "type": "status",
