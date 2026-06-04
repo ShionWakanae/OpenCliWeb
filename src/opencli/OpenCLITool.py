@@ -47,6 +47,20 @@ def process_toutiao_data(data):
     return data
 
 
+def remove_fields(obj, fields_to_remove):
+    """递归删除指定列表中的所有字段"""
+    if isinstance(obj, dict):
+        for field in fields_to_remove:
+            if field in obj:
+                del obj[field]
+        for key, value in obj.items():
+            obj[key] = remove_fields(value, fields_to_remove)
+    elif isinstance(obj, list):
+        for i, item in enumerate(obj):
+            obj[i] = remove_fields(item, fields_to_remove)
+    return obj
+
+
 class OpenCLITool:
     def __init__(self, profile=None, verbose=False, timeout=90, on_execute=None):
         self.profile = profile
@@ -127,20 +141,6 @@ class OpenCLITool:
         command,
         format_output="",
     ):
-
-        def remove_fields(obj, fields_to_remove):
-            """递归删除指定列表中的所有字段"""
-            if isinstance(obj, dict):
-                for field in fields_to_remove:
-                    if field in obj:
-                        del obj[field]
-                for key, value in obj.items():
-                    obj[key] = remove_fields(value, fields_to_remove)
-            elif isinstance(obj, list):
-                for i, item in enumerate(obj):
-                    obj[i] = remove_fields(item, fields_to_remove)
-            return obj
-
         format_output = format_output.lower()
         cmd = ["cmd", "/c", *self.base_args, *shlex.split(command)]
         if format_output and "-f" not in command and "--format" not in command:
@@ -195,21 +195,6 @@ class OpenCLITool:
                         data = json.loads(result.stdout)
                     if format_output == "yaml":
                         data = yaml.safe_load(result.stdout)
-
-                    if data:
-                        fields = [
-                            "browser_common_options",
-                            "common_options",
-                            "next",
-                            "columns",
-                            "image_url",
-                            "example",
-                            "command",
-                            "access",
-                            "domain",
-                            "browser",
-                        ]
-                        data = remove_fields(data, fields)
 
                 except Exception:
                     if self.verbose:
@@ -291,6 +276,21 @@ class OpenCLITool:
             if not r.success:
                 return r.error
             if r.data:
+                data = r.data
+                fields = [
+                    "browser_common_options",
+                    "common_options",
+                    "next",
+                    "columns",
+                    "image_url",
+                    "example",
+                    "command",
+                    "access",
+                    "domain",
+                    "browser",
+                ]
+                data = remove_fields(data, fields)
+
                 # result = r.data
                 # if r.data_format == "json":
                 #     data_str = json.dumps(r.data)
@@ -300,8 +300,8 @@ class OpenCLITool:
                 #     data_str = r.stdout
                 # print(f"{len(r.stdout)} -> {len(data_str)} -> {len(str(result))}")
 
-                # print(r.data)
-                return r.data
+                # print(data)
+                return data
 
             return r.stdout
 
