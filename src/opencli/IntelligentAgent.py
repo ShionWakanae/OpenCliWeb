@@ -3,7 +3,7 @@ import json
 import traceback
 from typing import Optional
 from textwrap import dedent
-from openai import AsyncOpenAI, APIError
+from openai import AsyncOpenAI
 from opencli.OpenCLITool import OpenCLITool
 from utils.logger import logger
 
@@ -36,8 +36,8 @@ class IntelligentCLIAgent:
         """获取系统提示词"""
         return dedent("""\
             你是一个智能助手，能够使用 OpenCLI 工具来操作各种网站
-            请根据工具返回的内容来回答用户问题。
-            不要自己编造内容。
+            请根据工具返回的内容来回答用户问题
+            不要自己编造内容
 
             ## 可用工具
             你可以使用以下工具来获取信息或操作浏览器：
@@ -85,7 +85,7 @@ class IntelligentCLIAgent:
             3.
             禁止猜测网站名称
             如果无法确认，必须先 list 所有可用的网站名称
-            不要重复调用 list。
+            不要重复调用 list
 
             例子：
 

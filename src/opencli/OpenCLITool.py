@@ -251,8 +251,8 @@ class OpenCLITool:
         self.register(
             name="opencli_sites_list",
             description=dedent("""\
-                仅列出支持的网站。
-                不要用来查看具体命令。
+                仅列出支持的网站
+                不要用来查看具体命令
                 查看命令请调用 opencli_site_help
             """),
             schema={
@@ -264,7 +264,7 @@ class OpenCLITool:
 
         # help
         def opencli_site_help(site):
-            site = site.replace("_", " ")
+            site = site.replace("_", " ").lower()
             r = self._execute_opencli_command(f"{site} --help", format_output="yaml")
             if r.success:
                 return r.stdout
@@ -274,7 +274,7 @@ class OpenCLITool:
         self.register(
             name="opencli_site_help",
             description=dedent("""\
-                查看某个网站支持哪些操作。
+                查看某个网站支持哪些操作，网站名称大小写敏感
 
                 输入：
                 网站名(site)
@@ -289,7 +289,7 @@ class OpenCLITool:
 
                 返回：
                 该网站支持的子命令列表
-                包括子命令是否支持'limit'选项(command_options)。
+                包括子命令是否支持'limit'选项(command_options)
             """),
             schema={
                 "type": "object",
@@ -313,7 +313,7 @@ class OpenCLITool:
             ):
                 if site_cmd.startswith(p):
                     site_cmd = site_cmd[len(p) :]
-
+            site_cmd = site_cmd.lower()
             r = self._execute_opencli_command(site_cmd, format_output="yaml")
             result = r.to_dict()
             try:
@@ -346,7 +346,7 @@ class OpenCLITool:
             name="opencli_execute",
             description=dedent("""\
                 ## site_cmd
-                执行某个网站命令
+                执行某个网站命令，网站名称和命令大小写敏感                
                 
                 网站命令的格式:
                 (site) (command)
@@ -354,8 +354,8 @@ class OpenCLITool:
                 或:
                 (site) (command) --limit=(条数)    
                 
-                说明: 如果site_cmd支持可选的 <limit> 选项，且用户表达了对返回条数的需求。
-                这里的 --limit 可增加或减少实际返回的结果数量。
+                说明: 如果site_cmd支持可选的 <limit> 选项，且用户表达了对返回条数的需求
+                使用 --limit 可增加或减少实际返回的结果数量
 
                 比如:
                 site_cmd = bilibili history
@@ -365,16 +365,16 @@ class OpenCLITool:
                 opencli
                 cmd
                 -f 格式
-                系统会自动补充。
+                系统会自动补充
 
                 不要输入site_cmd字符串本身，比如错误的例子:
                 site_cmd = site_cmd=bilibili history
 
                 ## result_limit
-                后期限制(仅减少)返回结果的数量。
+                后期限制(仅减少)返回结果的数量
                 
-                如果site_cmd不支持 <limit> 选项,但用户表达了限制条数,则传入 result_limit 参数。
-                如果site_cmd支持 <limit> 选项,则不传入 result_limit 参数。
+                如果site_cmd不支持 <limit> 选项,但用户表达了限制条数,则传入 result_limit 参数
+                如果site_cmd支持 <limit> 选项,则不传入 result_limit 参数
                 
                 例如：
                 result_limit = 10
@@ -397,7 +397,7 @@ class OpenCLITool:
         self.register(
             name="get_today_date",
             description=dedent("""\
-                获取当天日期。
+                获取当天日期
 
                 返回：
                 格式为 yyyy-mm-dd 的日期字符串，例如：2026-05-23
