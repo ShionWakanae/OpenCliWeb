@@ -5,6 +5,7 @@ from typing import Optional
 from textwrap import dedent
 from openai import AsyncOpenAI
 from opencli.OpenCLITool import OpenCLITool
+from collections import defaultdict
 from utils.logger import logger
 
 log = logger.log
@@ -127,6 +128,7 @@ class IntelligentCLIAgent:
         self,
         message,
     ):
+        tools_called = defaultdict(int)
         messages = [
             {
                 "role": "system",
@@ -138,7 +140,7 @@ class IntelligentCLIAgent:
             },
         ]
         is_answering = False
-        MAX_TOOL = 15
+        MAX_TOOL = 99
         for _ in range(MAX_TOOL):
             stream = await self.client.chat.completions.create(
                 model=self.model,
@@ -297,6 +299,17 @@ class IntelligentCLIAgent:
                     "kwargs": args,
                     "text_content": "",
                 }
+                full_name = name + json.dumps(args, sort_keys=True)
+                tools_called[full_name] += 1
+                if tools_called[full_name] > 3:
+                    print("same tool and args over 3 times !!!")
+                    yield {
+                        "type": "trace",
+                        "stage": "异常",
+                        "message": "工具调用循环溢出！完全同样工具和参数调用次数超过3次。",
+                        "timing": 0,
+                    }
+                    return
 
                 try:
                     result = await asyncio.to_thread(
