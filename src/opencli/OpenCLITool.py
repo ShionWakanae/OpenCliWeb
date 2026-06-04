@@ -347,7 +347,7 @@ class OpenCLITool:
             ):
                 if site_cmd.startswith(p):
                     site_cmd = site_cmd[len(p) :]
-            site_cmd = site_cmd.lower()
+            # site_cmd = site_cmd.lower()
             r = self._execute_opencli_command(site_cmd, format_output="yaml")
             if not r.success:
                 return r.error
