@@ -371,8 +371,7 @@ class OpenCLITool:
                 cmd /c
 
                 返回：
-                该网站(site)的命令(cmd)的详细帮助信息
-                包括子命令是否支持'limit'选项(command_options)
+                该网站(site)的命令(cmd)的详细参数等帮助信息
             """),
             schema={
                 "type": "object",
@@ -446,19 +445,16 @@ class OpenCLITool:
                 执行某个完整命令字符串，大小写敏感                
                 
                 完整命令字符串的拼接格式:
-                (site) (command) <可选options>
+                (site) (cmd) <command_options> --limit=条数
                 
-                或:
-                (site) (command) <可选options> --limit=(条数)    
-                
-                说明: 如果site_cmd支持可选的 <limit> 选项，且用户表达了对返回条数的需求
-                使用 --limit 可增加或减少实际返回的结果数量
-
                 比如:
-                site_cmd = bilibili history
+                site_cmd = bilibili history --limit=10
                 site_cmd = zhihu hot --limit=5
                 site_cmd = 12306 trains --from=成都东 --to=北京西 --date=2026-06-05
 
+                当需要控制返回结果条数, 且命令支持--limit 参数时:
+                必须在添加 --limit 参数！
+                
                 不要输入：
                 opencli
                 cmd
@@ -469,8 +465,7 @@ class OpenCLITool:
                 site_cmd = site_cmd=bilibili history
 
                 ## result_limit
-                后期限制(仅减少)返回结果的数量
-                只要需要限制条数, 则必须传入 result_limit 参数, 以防止 --limit 失效的情况
+                如果需要限制条数, 则必须传入 result_limit 参数, 可与 --limit 同时使用
                 
                 例如：
                 result_limit = 10
