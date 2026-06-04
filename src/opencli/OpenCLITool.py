@@ -36,6 +36,17 @@ class CommandResult:
         }
 
 
+def process_toutiao_data(data):
+    """专门处理头条数据"""
+    if isinstance(data, list):
+        for item in data:
+            if isinstance(item, dict) and "url" in item:
+                # 清理 URL
+                if "?" in item["url"]:
+                    item["url"] = item["url"].split("?")[0]
+    return data
+
+
 class OpenCLITool:
     def __init__(self, profile=None, verbose=False, timeout=90, on_execute=None):
         self.profile = profile
@@ -191,6 +202,12 @@ class OpenCLITool:
                             "common_options",
                             "next",
                             "columns",
+                            "image_url",
+                            "example",
+                            "command",
+                            "access",
+                            "domain",
+                            "browser",
                         ]
                         data = remove_fields(data, fields)
 
@@ -342,7 +359,7 @@ class OpenCLITool:
                         data,
                         list,
                     ):
-                        result["data"] = data[:result_limit]
+                        data = data[:result_limit]
                     elif (
                         result_limit
                         and isinstance(
@@ -355,7 +372,10 @@ class OpenCLITool:
                         )
                     ):
                         data["items"] = data["items"][:result_limit]
-                        result["data"] = data
+
+                    if "toutiao" in site_cmd:
+                        data = process_toutiao_data(data)
+                    result["data"] = data
 
                 except Exception as e:
                     print(f"处理 result_limit 时出错: {e}")
