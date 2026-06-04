@@ -177,6 +177,9 @@ class OpenCLIService:
                         if not first_token:
                             first_token = True
                             answer_start = time.perf_counter()
+                elif event["type"] == "tool":
+                    # 工具调用，重置回答开始时间，适用于某些把推理过程输出到普通token中的模型。
+                    answer_start = time.perf_counter()
                 yield event
 
             # no token, no answer
