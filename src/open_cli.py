@@ -68,6 +68,7 @@ async def main(question, verbose=False):
             last_print_char = "\n"
 
         elif event["type"] == "tool":
+            streaming_start = time.perf_counter()
             tool_name = event.get("tool_name")
             kwargs = event.get("kwargs")
             stage = event.get("stage")

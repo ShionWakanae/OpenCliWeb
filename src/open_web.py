@@ -636,6 +636,7 @@ def main():
 
                         # sources
                         elif event["type"] == "tool":
+                            streaming_start = time.perf_counter()
                             if (
                                 assistant_stage_spinner
                                 and not assistant_stage_spinner.visible
