@@ -10,6 +10,26 @@ from utils.logger import logger
 log = logger.log
 
 
+def get_error_message(e: Exception) -> str:
+    # OpenAI SDK
+    if hasattr(e, "body"):
+        try:
+            return e.body["error"]["message"]
+        except Exception:
+            pass
+
+    # requests
+    if hasattr(e, "response"):
+        try:
+            data = e.response.json()
+            if "error" in data:
+                return data["error"]
+        except Exception:
+            pass
+
+    return str(e)
+
+
 def create_agent(
     base_url="https://api.openai.com/v1",
     api_key="",
@@ -180,15 +200,22 @@ class OpenCLIService:
                 "source": "opencli",
             }
 
-        except Exception:
+        except Exception as e:
+            print(traceback.format_exc())
+            yield {
+                "type": "trace",
+                "stage": "异常",
+                "message": str(e),
+                "timing": 0,
+            }
+            error_message = get_error_message(e)
             yield {
                 "type": "token",
-                "text": traceback.format_exc(),
+                "text": f"📛错误：{error_message}",
             }
-
             yield {
                 "type": "status",
-                "got_answer": True,
+                "got_answer": False,
                 "source": "error",
             }
 

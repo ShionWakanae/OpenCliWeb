@@ -142,5 +142,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     quest_str = args.question
     verbose = args.Verbose
-    log(f"Question: [bold bright_yellow]{quest_str}[/]", False)
+    log(f"[Question] [bold bright_yellow]{quest_str}[/]", False)
     asyncio.run(main(quest_str, verbose))

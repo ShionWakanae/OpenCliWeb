@@ -165,74 +165,62 @@ class IntelligentCLIAgent:
             content = ""
             tool_calls = {}
             async for chunk in stream:
-                try:
-                    # usage chunk
-                    if chunk.usage:
-                        yield {
-                            "type": "usage",
-                            "usage": chunk.usage.model_dump(),
-                            "model": chunk.model.replace(".gguf", ""),
-                        }
-                        continue
+                # usage chunk
+                if chunk.usage:
+                    yield {
+                        "type": "usage",
+                        "usage": chunk.usage.model_dump(),
+                        "model": chunk.model.replace(".gguf", ""),
+                    }
+                    continue
 
-                    if not chunk.choices:
-                        continue
+                if not chunk.choices:
+                    continue
 
-                    delta = chunk.choices[0].delta
+                delta = chunk.choices[0].delta
 
-                    reasoning = ""
-                    if hasattr(delta, "reasoning_content") and delta.reasoning_content:
-                        if not is_answering:
-                            reasoning = delta.reasoning_content
-                    if hasattr(delta, "reasoning") and delta.reasoning:
-                        if not is_answering:
-                            reasoning = delta.reasoning
+                reasoning = ""
+                if hasattr(delta, "reasoning_content") and delta.reasoning_content:
+                    if not is_answering:
+                        reasoning = delta.reasoning_content
+                if hasattr(delta, "reasoning") and delta.reasoning:
+                    if not is_answering:
+                        reasoning = delta.reasoning
 
-                    if not is_answering and reasoning:
-                        yield {
-                            "type": "reasoning",
-                            "text": reasoning,
-                        }
-                    # 普通文本
-                    if hasattr(delta, "content") and delta.content:
-                        content += delta.content
-                        yield {
-                            "type": "token",
-                            "text": delta.content,
-                        }
-                        if not is_answering:
-                            is_answering = True
+                if not is_answering and reasoning:
+                    yield {
+                        "type": "reasoning",
+                        "text": reasoning,
+                    }
+                # 普通文本
+                if hasattr(delta, "content") and delta.content:
+                    content += delta.content
+                    yield {
+                        "type": "token",
+                        "text": delta.content,
+                    }
+                    if not is_answering:
+                        is_answering = True
 
-                    # tool call
-                    if delta.tool_calls:
-                        for tc in delta.tool_calls:
-                            idx = tc.index
+                # tool call
+                if delta.tool_calls:
+                    for tc in delta.tool_calls:
+                        idx = tc.index
 
-                            if idx not in tool_calls:
-                                tool_calls[idx] = {
-                                    "id": "",
-                                    "name": "",
-                                    "args": "",
-                                }
-                            if tc.id:
-                                tool_calls[idx]["id"] += tc.id
-                            if tc.function:
-                                if tc.function.name:
-                                    tool_calls[idx]["name"] += tc.function.name
-                                if tc.function.arguments:
-                                    tool_calls[idx]["args"] += tc.function.arguments
-                except Exception as e:
-                    if "Failed to parse input" in str(e):
-                        log(f"error:{e}")
-                        yield {
-                            "type": "trace",
-                            "stage": "异常",
-                            "message": f"{content} : {e}",
-                            "timing": 0,
-                        }
-                        continue
-                    else:
-                        raise
+                        if idx not in tool_calls:
+                            tool_calls[idx] = {
+                                "id": "",
+                                "name": "",
+                                "args": "",
+                            }
+                        if tc.id:
+                            tool_calls[idx]["id"] += tc.id
+                        if tc.function:
+                            if tc.function.name:
+                                tool_calls[idx]["name"] += tc.function.name
+                            if tc.function.arguments:
+                                tool_calls[idx]["args"] += tc.function.arguments
+
             # finish
             if not tool_calls:
                 if any(
@@ -333,7 +321,7 @@ class IntelligentCLIAgent:
         yield {
             "type": "trace",
             "stage": "异常",
-            "message": "工具调用循环溢出:工具调用次数过多却没有得到最终结果。",
+            "message": "工具调用循环溢出！在最终结果生成前，工具调用次数已经过多。",
             "timing": 0,
         }
 
@@ -373,12 +361,5 @@ class IntelligentCLIAgent:
             loop.close()
 
     async def astream(self, message):
-        try:
-            async for event in self._run(message):
-                yield event
-
-        except Exception:
-            yield {
-                "type": "token",
-                "text": traceback.format_exc(),
-            }
+        async for event in self._run(message):
+            yield event

@@ -492,7 +492,7 @@ def main():
                     switch_debug.set_value(False)
                     switch_debug.set_enabled(False)
                     print("=" * 60)
-                    log(f"Question: {message}", False)
+                    log(f"[Question] {message}", False)
                     # reset status
                     debug_panel.content = """
                     <div class="debug-panel">
@@ -560,7 +560,6 @@ def main():
 
                     first_token = False
                     first_reasoning = False
-                    last_print_char = ""
                     streaming_start = time.perf_counter()
                     async for event in service.stream_answer(message):
                         if event is None:
@@ -748,8 +747,8 @@ def main():
 
                     # fallback
                     if not got_answer:
-                        assistant_message_content = (
-                            "对不起，我不知道哪里出了问题，无法完成你的要求……"
+                        assistant_message_content += (
+                            "\n对不起，我不知道哪里出了问题，无法完成你的要求……"
                         )
 
                     atime = f"🕐{datetime.datetime.now().strftime('%H:%M:%S')}"
