@@ -117,16 +117,17 @@ class OpenCLITool:
         format_output="",
     ):
 
-        def remove_browser_common_options(obj):
-            """递归删除所有 browser_common_options 字段"""
+        def remove_fields(obj, fields_to_remove):
+            """递归删除指定列表中的所有字段"""
             if isinstance(obj, dict):
-                if "browser_common_options" in obj:
-                    del obj["browser_common_options"]
+                for field in fields_to_remove:
+                    if field in obj:
+                        del obj[field]
                 for key, value in obj.items():
-                    obj[key] = remove_browser_common_options(value)
+                    obj[key] = remove_fields(value, fields_to_remove)
             elif isinstance(obj, list):
                 for i, item in enumerate(obj):
-                    obj[i] = remove_browser_common_options(item)
+                    obj[i] = remove_fields(item, fields_to_remove)
             return obj
 
         format_output = format_output.lower()
@@ -185,7 +186,13 @@ class OpenCLITool:
                         data = yaml.safe_load(result.stdout)
 
                     if data:
-                        data = remove_browser_common_options(data)
+                        fields = [
+                            "browser_common_options",
+                            "common_options",
+                            "next",
+                            "columns",
+                        ]
+                        data = remove_fields(data, fields)
 
                 except Exception:
                     if self.verbose:
@@ -264,19 +271,22 @@ class OpenCLITool:
         def opencli_site_help(site):
             site = site.replace("_", " ").lower()
             r = self._execute_opencli_command(f"{site} --help", format_output="yaml")
-            if r.success:
-                if r.data:
-                    if r.data_format == "json":
-                        data_str = json.dumps(r.data)
-                    if r.data_format == "yaml":
-                        data_str = yaml.safe_dump(r.data)
-                    else:
-                        data_str = r.stdout
-                    return data_str
-                else:
-                    return r.stdout
+            if not r.success:
+                return r.error
+            if r.data:
+                # result = r.data
+                # if r.data_format == "json":
+                #     data_str = json.dumps(r.data)
+                # if r.data_format == "yaml":
+                #     data_str = yaml.safe_dump(r.data)
+                # else:
+                #     data_str = r.stdout
+                # print(f"{len(r.stdout)} -> {len(data_str)} -> {len(str(result))}")
 
-            return r.error
+                # print(r.data)
+                return r.data
+
+            return r.stdout
 
         self.register(
             name="opencli_site_help",
@@ -322,32 +332,40 @@ class OpenCLITool:
                     site_cmd = site_cmd[len(p) :]
             site_cmd = site_cmd.lower()
             r = self._execute_opencli_command(site_cmd, format_output="yaml")
-            result = r.to_dict()
-            try:
-                data = result["data"]
-                if result_limit and isinstance(
-                    data,
-                    list,
-                ):
-                    result["data"] = data[:result_limit]
-                elif (
-                    result_limit
-                    and isinstance(
+            if not r.success:
+                return r.error
+            if r.data:
+                result = r.to_dict()
+                try:
+                    data = result["data"]
+                    if result_limit and isinstance(
                         data,
-                        dict,
-                    )
-                    and isinstance(
-                        data.get("items"),
                         list,
-                    )
-                ):
-                    data["items"] = data["items"][:result_limit]
+                    ):
+                        result["data"] = data[:result_limit]
+                    elif (
+                        result_limit
+                        and isinstance(
+                            data,
+                            dict,
+                        )
+                        and isinstance(
+                            data.get("items"),
+                            list,
+                        )
+                    ):
+                        data["items"] = data["items"][:result_limit]
+                        result["data"] = data
 
-            except Exception as e:
-                print(f"处理 result_limit 时出错: {e}")
-                if self.verbose:
-                    print(traceback.format_exc())
-            return result
+                except Exception as e:
+                    print(f"处理 result_limit 时出错: {e}")
+                    if self.verbose:
+                        print(traceback.format_exc())
+
+                # print(result["data"])
+                return result["data"]
+
+            return r.stdout
 
         self.register(
             name="opencli_execute",
@@ -379,9 +397,7 @@ class OpenCLITool:
 
                 ## result_limit
                 后期限制(仅减少)返回结果的数量
-                
-                如果site_cmd不支持 <limit> 选项,但用户表达了限制条数,则传入 result_limit 参数
-                如果site_cmd支持 <limit> 选项,则不传入 result_limit 参数
+                只要需要限制条数, 则必须传入 result_limit 参数, 以防止 --limit 失效的情况
                 
                 例如：
                 result_limit = 10
