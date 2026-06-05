@@ -317,6 +317,18 @@ class OpenCLITool:
                 return r.error
             if r.data:
                 data = r.data
+
+                # remove first level name field
+                if "name" in data:
+                    del data["name"]
+
+                if data["positionals"] and len(data["positionals"]) == 0:
+                    del data["positionals"]
+
+                if data["example"] and data["example"].endswith(" -f yaml"):
+                    data["usage"] = data["example"][:-8]
+
+                # remove unnecessary fields
                 fields = [
                     "site",
                     "browser_common_options",
@@ -331,6 +343,8 @@ class OpenCLITool:
                     "browser",
                     "description",
                     "output_formats",
+                    "positional",
+                    "type",
                 ]
                 data = remove_fields(data, fields)
 
