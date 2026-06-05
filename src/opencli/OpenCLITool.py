@@ -376,10 +376,18 @@ class OpenCLITool:
 
         # execute
         def opencli_execute(site_cmd, result_limit: int | None = None):
+            def extract_limit(site_cmd):
+                pattern = r"--limit\s*(?:=\s*|\s+)(\d+)"
+                match = re.search(pattern, site_cmd)
+                return int(match.group(1)) if match else None
+
             try:
                 result_limit = int(result_limit) if result_limit is not None else None
             except (TypeError, ValueError):
                 result_limit = None
+
+            if result_limit is None:
+                result_limit = extract_limit(site_cmd)
 
             for p in (
                 "opencli ",
