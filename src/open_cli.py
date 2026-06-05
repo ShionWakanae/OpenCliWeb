@@ -9,7 +9,7 @@ from utils.logger import logger
 log = logger.log
 
 
-async def main(question, verbose=False):
+async def main(question, think=False, verbose=False):
     accumulated = ""
     accumulated_reasoning = ""
     got_answer = False
@@ -21,7 +21,7 @@ async def main(question, verbose=False):
     completion_tokens = 0
     last_print_char = ""
     streaming_start = time.perf_counter()
-    async for event in service.stream_answer(question, verbose=verbose):
+    async for event in service.stream_answer(question, think=think, verbose=verbose):
         if event["type"] == "token":
             chunk = event["text"]
             if not first_token:
@@ -135,6 +135,12 @@ if __name__ == "__main__":
         help="Question text",
     )
     parser.add_argument(
+        "--Think",
+        action="store_true",
+        default=False,
+        help="Enable thinking",
+    )
+    parser.add_argument(
         "--Verbose",
         action="store_true",
         default=False,
@@ -142,6 +148,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     quest_str = args.question
+    think = args.Think
     verbose = args.Verbose
     log(f"[Question] [bold bright_yellow]{quest_str}[/]", False)
-    asyncio.run(main(quest_str, verbose))
+    asyncio.run(main(quest_str, think, verbose))

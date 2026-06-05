@@ -35,6 +35,7 @@ def create_agent(
     api_key="",
     model="gpt-4o-mini",
     opencli_profile=None,
+    think=False,
     verbose=False,
     on_execute=None,
 ):
@@ -44,6 +45,7 @@ def create_agent(
         client=client,
         model=model,
         opencli_tool=tool,
+        think=think,
         verbose=verbose,
     )
 
@@ -143,6 +145,7 @@ class OpenCLIService:
     async def stream_answer(
         self,
         question,
+        think=False,
         verbose=False,
     ):
         # events = []
@@ -154,6 +157,7 @@ class OpenCLIService:
             base_url=settings.llm_api_base,
             api_key=settings.llm_api_key,
             model=settings.llm_model,
+            think=think,
             verbose=verbose,
             # on_execute=on_execute,
         )

@@ -17,11 +17,13 @@ class IntelligentCLIAgent:
         client: AsyncOpenAI,
         model: str,
         opencli_tool: Optional[OpenCLITool] = None,
+        think=False,
         verbose=False,
     ):
 
         self.client = client
         self.model = model
+        self.think = think
         self.verbose = verbose
         self.opencli_tool = opencli_tool or OpenCLITool(verbose=verbose)
         self.tools = self.opencli_tool.get_tools()
@@ -118,6 +120,13 @@ class IntelligentCLIAgent:
         is_answering = False
         MAX_TOOL = 99
         loop_count = 0
+        extra_body = {}
+        if not self.think:
+            extra_body = {
+                "chat_template_kwargs": {"enable_thinking": False},
+                "enable_thinking": False,
+                "thinking": {"type": "disabled"},
+            }
         for _ in range(MAX_TOOL):
             loop_count += 1
             stream = await self.client.chat.completions.create(
@@ -127,18 +136,8 @@ class IntelligentCLIAgent:
                 tool_choice="auto",
                 temperature=0.1,
                 stream=True,
-                stream_options={
-                    "include_usage": True,
-                },
-                extra_body={
-                    "chat_template_kwargs": {
-                        "enable_thinking": False,
-                    },
-                    "enable_thinking": False,
-                    "thinking": {
-                        "type": "disabled",
-                    },
-                },
+                stream_options={"include_usage": True},
+                extra_body=extra_body,
                 max_tokens=8192,
             )
 
