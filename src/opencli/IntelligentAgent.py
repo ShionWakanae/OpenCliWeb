@@ -35,6 +35,8 @@ class IntelligentCLIAgent:
         self,
     ):
         """获取系统提示词"""
+
+        sites_str = "\n".join(self.opencli_tool._sites)
         return dedent(f"""\
             你是一个智能助手，能够使用 OpenCLI 工具来操作各种网站
 
@@ -45,7 +47,7 @@ class IntelligentCLIAgent:
             - **opencli_execute**: 执行任意完整命令字符串
 
             ## 可用网站列表(site list)如下：
-            {self.opencli_tool._sites}
+            {sites_str}
 
             ## 工具调用规则和步骤：
             
