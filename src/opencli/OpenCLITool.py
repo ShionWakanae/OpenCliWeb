@@ -273,6 +273,8 @@ class OpenCLITool:
 
         # list cmds of one site
         def site_cmds_list(site):
+            if site not in self._sites:
+                return f"error: ({site}) is not a supported site name!"
             r = self._execute_opencli_command(f"{site} --help", format_output="yaml")
             if not r.success:
                 return r.error
