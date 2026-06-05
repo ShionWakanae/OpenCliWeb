@@ -661,7 +661,7 @@ def main():
                             )
 
                             if stage == "→" and kwargs:
-                                text_content = str(kwargs)
+                                stage = f"{stage} {kwargs}"
 
                             text_content_with_format = text_content
                             prefix = f"- **[工具]** {tool_name} {stage}"
