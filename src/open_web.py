@@ -571,7 +571,6 @@ def main():
                                 log("Streaming...")
                                 first_token = True
                                 streaming_start = time.perf_counter()
-                            got_answer = True
                             if (
                                 assistant_stage_spinner
                                 and assistant_stage_spinner.visible

@@ -202,12 +202,13 @@ class IntelligentCLIAgent:
                                 if tc.function.arguments:
                                     tool_calls[idx]["args"] += tc.function.arguments
             except Exception as e:
+                # 这里是一个特殊的处理，原因不明，可能是聊天模板的问题，可跳过此轮而不是直接抛出异常。
                 if "Failed to parse input" in str(e):
-                    log(f"error : {e}")
+                    print(f"error : {str(e)[:100]}")
                     yield {
                         "type": "trace",
                         "stage": "异常",
-                        "message": f"{e} :: {content[:100]}",
+                        "message": f"{str(e)[:60]} :: {content[:60]}",
                         "timing": 0,
                     }
                     continue

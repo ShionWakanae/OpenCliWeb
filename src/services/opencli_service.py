@@ -180,6 +180,7 @@ class OpenCLIService:
                 elif event["type"] == "tool":
                     # 工具调用，重置回答开始时间，适用于某些把推理过程输出到普通token中的模型。
                     answer_start = time.perf_counter()
+                    got_answer = False
                 yield event
 
             # no token, no answer
