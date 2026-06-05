@@ -73,17 +73,7 @@ class IntelligentCLIAgent:
             拼接出完整命令字符串后：
             opencli_execute(...)
 
-            ## 规则：
-            不要拼 opencli
-            不要拼 cmd
-            不要加 -f 某格式
-
-            ## 禁止：
-            - 禁止猜测指令参数，必须根据 site_cmd_help确认
-            - 如果返回没有出错，则禁止用相同的参数重复调用同一个工具
-            - 同样的命令达到3次返回错误，停止工具调用，禁止继续重复
-
-            ## 日期规则：
+            ## 日期工具规则：
             1. 
             如果用户输入了明确的日期，则不必调用 get_today_date
 
@@ -94,6 +84,18 @@ class IntelligentCLIAgent:
             3，
             如果用户输入信息中没有日期内容，但发现在后续命令中需要日期，则调用 get_today_date
             并使用当天日期
+
+            ## 命令参数规则：
+            不要拼 opencli
+            不要拼 cmd
+            不要加 -f 某格式
+
+            ## 禁止：
+            - 禁止猜测指令参数，必须调用 site_cmd_help 获取命令参数
+            - 禁止用相同的参数重复调用 site_cmds_list 
+            - 禁止用相同的参数重复调用 site_cmd_help
+            - 如果 opencli_execute 返回正常数据: 禁止用相同的参数继续调用
+            - 如果 opencli_execute 返回出错或没有数据，尝试达到3次: 停止工具调用并提示用户
 
             ## 输出格式
             - 返回数据后用友好的方式向用户展示
