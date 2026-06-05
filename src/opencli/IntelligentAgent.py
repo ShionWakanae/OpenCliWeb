@@ -207,7 +207,7 @@ class IntelligentCLIAgent:
                     yield {
                         "type": "trace",
                         "stage": "异常",
-                        "message": f"({content}) : {e}",
+                        "message": f"{e} :: {content[:100]}",
                         "timing": 0,
                     }
                     continue
@@ -224,7 +224,7 @@ class IntelligentCLIAgent:
                     yield {
                         "type": "trace",
                         "stage": "异常",
-                        "message": content,
+                        "message": content[:100],
                         "timing": 0,
                     }
                     yield {
@@ -326,7 +326,7 @@ class IntelligentCLIAgent:
         yield {
             "type": "trace",
             "stage": "异常",
-            "message": "工具调用循环溢出！在最终结果生成前，工具调用次数已经过多。",
+            "message": "工具调用循环溢出！在最终结果生成前，工具调用次数过多。",
             "timing": 0,
         }
 
