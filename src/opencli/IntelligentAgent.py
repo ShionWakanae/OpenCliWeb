@@ -95,7 +95,7 @@ class IntelligentCLIAgent:
             - 禁止用相同的参数重复调用 site_cmds_list 
             - 禁止用相同的参数重复调用 site_cmd_help
             - 如果 opencli_execute 返回正常数据: 禁止用相同的参数继续调用
-            - 如果 opencli_execute 返回出错或没有数据，尝试达到3次: 停止工具调用并提示用户
+            - 如果 opencli_execute 返回(出错|超时|没有数据)尝试达到3次: 停止工具调用并提示用户
 
             ## 输出格式
             - 返回数据后用友好的方式向用户展示
