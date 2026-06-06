@@ -322,11 +322,15 @@ class OpenCLITool:
                 if "name" in data:
                     del data["name"]
 
-                if data["positionals"] and len(data["positionals"]) == 0:
+                if data["positionals"] is not None and len(data["positionals"]) == 0:
                     del data["positionals"]
 
+                example = data["usage"]
                 if data["example"] and data["example"].endswith(" -f yaml"):
-                    data["usage"] = data["example"][:-8]
+                    example = data["example"][:-8]
+
+                if len(data["usage"]) < len(example):
+                    data["usage"] = example
 
                 # remove unnecessary fields
                 fields = [
