@@ -726,7 +726,7 @@ def main():
                         (time.perf_counter() - streaming_start),
                         2,
                     )
-
+                    print()
                     log("Answer completed")
                     log("----------------")
                     log(

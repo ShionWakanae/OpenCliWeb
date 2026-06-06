@@ -109,7 +109,7 @@ async def main(question, think=False, verbose=False):
         (time.perf_counter() - streaming_start),
         2,
     )
-
+    print()
     if got_answer:
         log("Answer completed")
     else:
