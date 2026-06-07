@@ -46,7 +46,7 @@ class IntelligentCLIAgent:
             - **get_today_date**: 获取当天日期
             - **site_cmds_list**: 列出单个网站的所有可用命令
             - **site_cmd_help**: 获取单个网站的单个命令详细帮助
-            - **opencli_execute**: 执行任意完整命令字符串
+            - **site_cmd_exec**: 执行完整命令字符串
 
             ## 可用网站列表(site list)如下：
             {sites_str}
@@ -71,7 +71,7 @@ class IntelligentCLIAgent:
 
             4.执行命令:
             拼接出完整命令字符串后：
-            opencli_execute(...)
+            site_cmd_exec(...)
 
             ## 日期工具规则：
             1. 
@@ -94,8 +94,8 @@ class IntelligentCLIAgent:
             - 禁止猜测指令参数，必须调用 site_cmd_help 获取命令参数
             - 禁止用相同的参数重复调用 site_cmds_list 
             - 禁止用相同的参数重复调用 site_cmd_help
-            - 如果 opencli_execute 返回正常数据: 禁止用相同的参数继续调用
-            - 如果 opencli_execute 返回(出错|超时|没有数据)尝试达到3次: 停止工具调用并提示用户
+            - 如果 site_cmd_exec 返回正常数据: 禁止用相同的参数继续调用
+            - 如果 site_cmd_exec 返回(出错|超时|没有数据)并且尝试达到3次: 停止工具调用并提示用户
 
             ## 输出格式
             - 返回数据后用友好的方式向用户展示

@@ -75,6 +75,67 @@ def keep_fields(obj, fields_to_keep):
     return obj
 
 
+def reduce_cmds_list_field(data):
+    fields = [
+        "site",
+        "command_count",
+        "commands",
+        "name",
+        "description",
+    ]
+    data = keep_fields(data, fields)
+    return data
+
+
+def reduce_cmd_help_field(data):
+    # if cmd not exist, return cmds list field
+    if "command_count" in data:
+        return reduce_cmds_list_field(data)
+
+    # # remove first level name field
+    # if "name" in data:
+    #     del data["name"]
+
+    if (
+        "positionals" in data
+        and data["positionals"] is not None
+        and len(data["positionals"]) == 0
+    ):
+        del data["positionals"]
+
+    if "usage" in data:
+        example = data["usage"]
+        if "example" in data and data["example"].endswith(" -f yaml"):
+            example = data["example"][:-8]
+        if len(data["usage"]) < len(example):
+            data["usage"] = example
+
+    elif "example" in data:
+        example = data["example"]
+        if example.endswith(" -f yaml"):
+            data["usage"] = example[:-8]
+
+    # remove unnecessary fields
+    fields = [
+        "site",
+        "browser_common_options",
+        "common_options",
+        "next",
+        "columns",
+        "image_url",
+        "example",
+        "command",
+        "access",
+        "domain",
+        "browser",
+        "description",
+        "output_formats",
+        "positional",
+        "type",
+    ]
+    data = remove_fields(data, fields)
+
+
 class OpenCLITool:
     def __init__(self, profile=None, verbose=False, timeout=90, on_execute=None):
         self.profile = profile
@@ -280,14 +341,7 @@ class OpenCLITool:
                 return r.error
             if r.data:
                 data = r.data
-                fields = [
-                    "site",
-                    "commands",
-                    "name",
-                    "description",
-                ]
-                data = keep_fields(data, fields)
-
+                data = reduce_cmds_list_field(data)
                 # print(data)
                 return data
 
@@ -317,50 +371,7 @@ class OpenCLITool:
                 return r.error
             if r.data:
                 data = r.data
-
-                # remove first level name field
-                if "name" in data:
-                    del data["name"]
-
-                if data["positionals"] is not None and len(data["positionals"]) == 0:
-                    del data["positionals"]
-
-                example = data["usage"]
-                if data["example"] and data["example"].endswith(" -f yaml"):
-                    example = data["example"][:-8]
-
-                if len(data["usage"]) < len(example):
-                    data["usage"] = example
-
-                # remove unnecessary fields
-                fields = [
-                    "site",
-                    "browser_common_options",
-                    "common_options",
-                    "next",
-                    "columns",
-                    "image_url",
-                    "example",
-                    "command",
-                    "access",
-                    "domain",
-                    "browser",
-                    "description",
-                    "output_formats",
-                    "positional",
-                    "type",
-                ]
-                data = remove_fields(data, fields)
-
-                # result = r.data
-                # if r.data_format == "json":
-                #     data_str = json.dumps(r.data)
-                # if r.data_format == "yaml":
-                #     data_str = yaml.safe_dump(r.data)
-                # else:
-                #     data_str = r.stdout
-                # print(f"{len(r.stdout)} -> {len(data_str)} -> {len(str(result))}")
-
+                data = reduce_cmd_help_field(data)
                 # print(data)
                 return data
 
@@ -397,7 +408,7 @@ class OpenCLITool:
         )
 
         # execute
-        def opencli_execute(site_cmd, result_limit: int | None = None):
+        def site_cmd_exec(site_cmd, result_limit: int | None = None):
             def extract_limit(site_cmd):
                 pattern = r"--limit\s*(?:=\s*|\s+)(\d+)"
                 match = re.search(pattern, site_cmd)
@@ -459,7 +470,7 @@ class OpenCLITool:
             return r.stdout
 
         self.register(
-            name="opencli_execute",
+            name="site_cmd_exec",
             description=dedent("""\
                 ## site_cmd
                 执行某个完整命令字符串，大小写敏感                
@@ -498,7 +509,7 @@ class OpenCLITool:
                 },
                 "required": ["site_cmd"],
             },
-            fn=opencli_execute,
+            fn=site_cmd_exec,
         )
 
         # date
