@@ -83,8 +83,7 @@ def reduce_cmds_list_field(data):
         "name",
         "description",
     ]
-    data = keep_fields(data, fields)
-    return data
+    return keep_fields(data, fields)
 
 
 def reduce_cmd_help_field(data):
@@ -117,7 +116,6 @@ def reduce_cmd_help_field(data):
 
     # remove unnecessary fields
     fields = [
-        "site",
         "browser_common_options",
         "common_options",
         "next",
@@ -133,7 +131,7 @@ def reduce_cmd_help_field(data):
         "positional",
         "type",
     ]
-    data = remove_fields(data, fields)
+    return remove_fields(data, fields)
 
 
 class OpenCLITool:
