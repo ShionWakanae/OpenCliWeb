@@ -348,7 +348,13 @@ class OpenCLITool:
         self.register(
             name="cmds_list",
             description=dedent("""\
-                列出单个网站(site)支持的全部命令(cmds)
+                列出单个网站(site)支持的全部命令
+                
+                输入：
+                网站名(site)
+
+                返回：
+                该网站(site)的全部命令   
             """),
             schema={
                 "type": "object",
@@ -383,16 +389,8 @@ class OpenCLITool:
                 输入：
                 网站名(site), 命令(cmd)
 
-                例如：
-                bilibili hot
-                zhihu search
-
-                不要输入：
-                opencli bilibili hot
-                cmd /c
-
                 返回：
-                该网站(site)的命令(cmd)的详细参数等帮助信息
+                该命令(cmd)的详细参数信息
             """),
             schema={
                 "type": "object",
@@ -480,17 +478,16 @@ class OpenCLITool:
                 必须在添加 --limit 参数！
                 
                 不要输入：
+                "full_cmd"字符串本身
+
+                不要输入：
                 opencli
                 cmd
                 -f 格式
                 系统会自动补充
 
-                不要输入full_cmd字符串本身
-                错误的例子:
-                full_cmd = full_cmd=bilibili history
-
                 ## result_limit
-                如果需要限制条数, 则必须传入 result_limit 参数, 可与 --limit 同时使用
+                如需限制条数则必须传入 result_limit 参数, 可与 --limit 同时使用
                 
                 例如：
                 result_limit = 10
@@ -516,7 +513,7 @@ class OpenCLITool:
                 获取当天日期
 
                 返回：
-                格式为 yyyy-mm-dd 的日期字符串，例如：2026-05-23
+                格式为 yyyy-mm-dd 的日期字符串
             """),
             schema={
                 "type": "object",
