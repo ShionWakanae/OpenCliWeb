@@ -476,11 +476,6 @@ class OpenCLITool:
                 完整命令字符串的拼接格式:
                 (site) (cmd) <command_options> --limit=条数
                 
-                比如:
-                site_cmd = bilibili history --limit=10
-                site_cmd = zhihu hot --limit=5
-                site_cmd = 12306 trains --from=成都东 --to=北京西 --date=2026-06-05
-
                 当需要控制返回结果条数, 且命令支持--limit 参数时:
                 必须在添加 --limit 参数！
                 
@@ -490,7 +485,8 @@ class OpenCLITool:
                 -f 格式
                 系统会自动补充
 
-                不要输入site_cmd字符串本身，比如错误的例子:
+                不要输入site_cmd字符串本身
+                错误的例子:
                 site_cmd = site_cmd=bilibili history
 
                 ## result_limit
