@@ -200,13 +200,12 @@ def main():
                     min-w-0
                 """):
                     quick_questions = [
-                        "目前B站上最热门的5条视频是？",
-                        "我的B站的观看历史",
-                        "我的B站的收藏夹",
-                        "我的B站的动态详情",
-                        "我的小红书的通知",
-                        "小红书上关于PIU跳舞机的内容",
-                        "抖音的官方活动列表",
+                        "我能查看哪些网站？",
+                        "B站上最热的5条视频？",
+                        "今日头条的5条热门新闻",
+                        "知乎上的热门内容",
+                        "查查Arxiv上Ivan Perov的论文",
+                        "Node.js里@jackwener/opencli的下载量",
                     ]
 
                     for q in quick_questions:
