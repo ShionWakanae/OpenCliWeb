@@ -55,7 +55,8 @@ class IntelligentCLIAgent:
             
             1.
             第一步: 确认网站(site)名称:
-            从[site list]中找到最匹配的名称
+            根据用户输入, 从[site list]中找到最匹配的名称
+            你只能处理[site list]中的网站(site)
 
             2.
             第二步: 取得网站支持的命令列表:
