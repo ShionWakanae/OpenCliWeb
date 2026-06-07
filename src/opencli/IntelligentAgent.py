@@ -51,29 +51,27 @@ class IntelligentCLIAgent:
             ## 可用网站列表(site list)如下：
             {sites_str}
 
-            ## 工具调用规则和步骤：
+            ## 工具步骤：
             
-            1.确认网站(site)名称:
-            如果用户输入了(site list)中的名称,直接使用，比如:
-            bilibili, zhihu, github
+            1.
+            第一步: 确认网站(site)名称:
+            从(site list)中找到最匹配的名称
 
-            如果用户使用别名、简称、中文名称：
-            B站, 知乎, 新浪财经, 微博, 小红书
-
-            则从(site list)中找到最匹配的名称
-
-            2.确认网站支持的命令(cmd):
+            2.
+            第二步: 取得网站支持的命令列表:
             执行 site_cmds_list(site)
 
-            3.确认命令参数:
+            3.
+            第三步: 确认命令参数:
             执行 site_cmd_help(site, cmd)
-            并根据返回结果确认命令参数
 
-            4.执行命令:
+            4.
+            第四步: 执行命令:
             拼接出完整命令字符串后：
-            site_cmd_exec(...)
+            执行 site_cmd_exec(...)
 
             ## 日期工具规则：
+
             1. 
             如果用户输入了明确的日期，则不必调用 get_today_date
 
@@ -91,9 +89,9 @@ class IntelligentCLIAgent:
             不要加 -f 某格式
 
             ## 禁止：
-            - 禁止猜测指令参数，必须调用 site_cmd_help 获取命令参数
-            - 禁止用相同的参数重复调用 site_cmds_list 
-            - 禁止用相同的参数重复调用 site_cmd_help
+            - 禁止编造数据: 必须调用工具取得真实数据
+            - 禁止猜测指令参数: 必须先调用site_cmds_list 确认支持的命令(cmd)，再调用 site_cmd_help 获取命令参数
+            - 禁止用相同的参数重复调用工具: 最多调用3次
             - 如果 site_cmd_exec 返回正常数据: 禁止用相同的参数继续调用
             - 如果 site_cmd_exec 返回(出错|超时|没有数据)并且尝试达到3次: 停止工具调用并提示用户
 
