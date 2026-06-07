@@ -331,7 +331,7 @@ class OpenCLITool:
     def _register_all_tools(self):
 
         # list cmds of one site
-        def site_cmds_list(site):
+        def cmds_list(site):
             if site not in self._sites:
                 return f"error: ({site}) is not a supported site name!"
             r = self._execute_opencli_command(f"{site} --help", format_output="yaml")
@@ -346,7 +346,7 @@ class OpenCLITool:
             return r.stdout
 
         self.register(
-            name="site_cmds_list",
+            name="cmds_list",
             description=dedent("""\
                 列出单个网站(site)支持的全部命令(cmds)
             """),
@@ -355,11 +355,11 @@ class OpenCLITool:
                 "properties": {"site": {"type": "string"}},
                 "required": ["site"],
             },
-            fn=site_cmds_list,
+            fn=cmds_list,
         )
 
         # help
-        def site_cmd_help(site, cmd):
+        def cmd_help(site, cmd):
             if site not in self._sites:
                 return f"error: ({site}) is not a supported site name!"
             r = self._execute_opencli_command(
@@ -376,7 +376,7 @@ class OpenCLITool:
             return r.stdout
 
         self.register(
-            name="site_cmd_help",
+            name="cmd_help",
             description=dedent("""\
                 查看单个网站(site)的单个命令(cmd)的帮助信息
 
@@ -402,14 +402,14 @@ class OpenCLITool:
                 },
                 "required": ["site", "cmd"],
             },
-            fn=site_cmd_help,
+            fn=cmd_help,
         )
 
         # execute
-        def site_cmd_exec(site_cmd, result_limit: int | None = None):
-            def extract_limit(site_cmd):
+        def cmd_exec(full_cmd, result_limit: int | None = None):
+            def extract_limit(full_cmd):
                 pattern = r"--limit\s*(?:=\s*|\s+)(\d+)"
-                match = re.search(pattern, site_cmd)
+                match = re.search(pattern, full_cmd)
                 return int(match.group(1)) if match else None
 
             try:
@@ -418,17 +418,17 @@ class OpenCLITool:
                 result_limit = None
 
             if result_limit is None:
-                result_limit = extract_limit(site_cmd)
+                result_limit = extract_limit(full_cmd)
 
             for p in (
                 "opencli ",
                 "cmd ",
                 "cmd /c ",
             ):
-                if site_cmd.startswith(p):
-                    site_cmd = site_cmd[len(p) :]
-            # site_cmd = site_cmd.lower()
-            r = self._execute_opencli_command(site_cmd, format_output="yaml")
+                if full_cmd.startswith(p):
+                    full_cmd = full_cmd[len(p) :]
+
+            r = self._execute_opencli_command(full_cmd, format_output="yaml")
             if not r.success:
                 return r.error
             if r.data:
@@ -453,7 +453,7 @@ class OpenCLITool:
                     ):
                         data["items"] = data["items"][:result_limit]
 
-                    if "toutiao" in site_cmd:
+                    if "toutiao" in full_cmd:
                         data = process_toutiao_data(data)
                     result["data"] = data
 
@@ -468,9 +468,9 @@ class OpenCLITool:
             return r.stdout
 
         self.register(
-            name="site_cmd_exec",
+            name="cmd_exec",
             description=dedent("""\
-                ## site_cmd
+                ## full_cmd
                 执行某个完整命令字符串，大小写敏感                
                 
                 完整命令字符串的拼接格式:
@@ -485,9 +485,9 @@ class OpenCLITool:
                 -f 格式
                 系统会自动补充
 
-                不要输入site_cmd字符串本身
+                不要输入full_cmd字符串本身
                 错误的例子:
-                site_cmd = site_cmd=bilibili history
+                full_cmd = full_cmd=bilibili history
 
                 ## result_limit
                 如果需要限制条数, 则必须传入 result_limit 参数, 可与 --limit 同时使用
@@ -498,20 +498,20 @@ class OpenCLITool:
             schema={
                 "type": "object",
                 "properties": {
-                    "site_cmd": {"type": "string"},
+                    "full_cmd": {"type": "string"},
                     "result_limit": {"type": "integer"},
                 },
-                "required": ["site_cmd"],
+                "required": ["full_cmd"],
             },
-            fn=site_cmd_exec,
+            fn=cmd_exec,
         )
 
         # date
-        def get_today_date():
+        def today_date():
             return date.today().strftime("%Y-%m-%d")
 
         self.register(
-            name="get_today_date",
+            name="today_date",
             description=dedent("""\
                 获取当天日期
 
@@ -522,7 +522,7 @@ class OpenCLITool:
                 "type": "object",
                 "properties": {},
             },
-            fn=get_today_date,
+            fn=today_date,
         )
 
     # api
