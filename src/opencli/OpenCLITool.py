@@ -77,7 +77,6 @@ def keep_fields(obj, fields_to_keep):
 
 def reduce_cmds_list_field(data):
     fields = [
-        "site",
         "command_count",
         "commands",
         "name",
@@ -91,9 +90,9 @@ def reduce_cmd_help_field(data):
     if "command_count" in data:
         return reduce_cmds_list_field(data)
 
-    # # remove first level name field
-    # if "name" in data:
-    #     del data["name"]
+    # remove first level name field
+    if "name" in data:
+        del data["name"]
 
     if (
         "positionals" in data
@@ -116,6 +115,7 @@ def reduce_cmd_help_field(data):
 
     # remove unnecessary fields
     fields = [
+        "site",
         "browser_common_options",
         "common_options",
         "next",
