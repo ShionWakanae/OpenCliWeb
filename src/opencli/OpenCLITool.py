@@ -8,6 +8,7 @@ from datetime import date
 from textwrap import dedent
 from dataclasses import dataclass
 from typing import Any
+from collections import defaultdict
 from utils.logger import logger
 
 log = logger.log
@@ -191,7 +192,8 @@ class OpenCLITool:
                     profile,
                 ]
             )
-
+        self.tools_called = defaultdict(int)
+        self.tools_success = defaultdict(int)
         self._functions = {}
         self._schemas = {}
         self._sites = self._sites_list()
@@ -316,6 +318,18 @@ class OpenCLITool:
                 except Exception:
                     if self.verbose:
                         print(traceback.format_exc())
+
+            self.tools_success[" ".join(cmd)] += 1
+            if self.tools_success[" ".join(cmd)] > 1:
+                return CommandResult(
+                    success=False,
+                    command=" ".join(cmd),
+                    stdout="",
+                    stderr="",
+                    data=None,
+                    error="ok: false\nerror: duplicated cmd execution attempt, please check the previous results.",
+                    data_format=format_output,
+                )
 
             return CommandResult(
                 success=True,

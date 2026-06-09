@@ -5,7 +5,6 @@ from typing import Optional
 from textwrap import dedent
 from openai import AsyncOpenAI
 from opencli.OpenCLITool import OpenCLITool
-from collections import defaultdict
 from utils.logger import logger
 
 log = logger.log
@@ -105,7 +104,6 @@ class IntelligentCLIAgent:
         self,
         message,
     ):
-        tools_called = defaultdict(int)
         messages = [
             {
                 "role": "system",
@@ -279,8 +277,8 @@ class IntelligentCLIAgent:
                     "text_content": "",
                 }
                 full_name = name + json.dumps(args, sort_keys=True)
-                tools_called[full_name] += 1
-                if tools_called[full_name] > 3:
+                self.opencli_tool.tools_called[full_name] += 1
+                if self.opencli_tool.tools_called[full_name] > 3:
                     print("same tool and args over 3 times !!!")
                     yield {
                         "type": "trace",
