@@ -265,6 +265,19 @@ class OpenCLITool:
         if format_output and "-f" not in command and "--format" not in command:
             cmd.extend(["-f", format_output])
 
+        full_cmd = " ".join(cmd)
+        self.tools_success[full_cmd] += 1
+        if self.tools_success[full_cmd] > 1:
+            return CommandResult(
+                success=False,
+                command=full_cmd,
+                stdout="",
+                stderr="",
+                data=None,
+                error="ok: false\nerror: duplicated cmd execution attempt, please check the previous results.",
+                data_format=format_output,
+            )
+
         if self.on_execute:
             self.on_execute(
                 {
@@ -302,7 +315,7 @@ class OpenCLITool:
             if result.returncode != 0:
                 return CommandResult(
                     success=False,
-                    command=" ".join(cmd),
+                    command=full_cmd,
                     stderr=result.stderr,
                     error=result.stderr,
                 )
@@ -319,21 +332,9 @@ class OpenCLITool:
                     if self.verbose:
                         print(traceback.format_exc())
 
-            self.tools_success[" ".join(cmd)] += 1
-            if self.tools_success[" ".join(cmd)] > 1:
-                return CommandResult(
-                    success=False,
-                    command=" ".join(cmd),
-                    stdout="",
-                    stderr="",
-                    data=None,
-                    error="ok: false\nerror: duplicated cmd execution attempt, please check the previous results.",
-                    data_format=format_output,
-                )
-
             return CommandResult(
                 success=True,
-                command=" ".join(cmd),
+                command=full_cmd,
                 stdout=result.stdout,
                 stderr=result.stderr,
                 data=data,
