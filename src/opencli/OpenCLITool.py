@@ -61,57 +61,42 @@ def remove_fields(obj, fields_to_remove):
     return obj
 
 
-def keep_fields(obj, fields_to_keep):
-    """递归只保留指定列表中的字段，删除其他字段"""
-    if isinstance(obj, dict):
-        fields_to_delete = [key for key in obj.keys() if key not in fields_to_keep]
-        for field in fields_to_delete:
-            del obj[field]
-        for key, value in obj.items():
-            obj[key] = keep_fields(value, fields_to_keep)
-    elif isinstance(obj, list):
-        for i, item in enumerate(obj):
-            obj[i] = keep_fields(item, fields_to_keep)
-    return obj
+# def keep_fields(obj, fields_to_keep):
+#     """递归只保留指定列表中的字段，删除其他字段"""
+#     if isinstance(obj, dict):
+#         fields_to_delete = [key for key in obj.keys() if key not in fields_to_keep]
+#         for field in fields_to_delete:
+#             del obj[field]
+#         for key, value in obj.items():
+#             obj[key] = keep_fields(value, fields_to_keep)
+#     elif isinstance(obj, list):
+#         for i, item in enumerate(obj):
+#             obj[i] = keep_fields(item, fields_to_keep)
+#     return obj
 
 
-def reduce_cmds_list_field(data):
-    fields = [
-        "command_count",
-        "commands",
-        "name",
-        "description",
-    ]
-    return keep_fields(data, fields)
+def reduce_site_help_field(data):
+    if "commands" not in data:
+        return data
+    for item in data["commands"]:
+        if (
+            "positionals" in item
+            and item["positionals"] is not None
+            and len(item["positionals"]) == 0
+        ):
+            del item["positionals"]
 
+        if "usage" in item:
+            example = item["usage"]
+            if "example" in item and item["example"].endswith(" -f yaml"):
+                example = item["example"][:-8]
+            if len(item["usage"]) < len(example):
+                item["usage"] = example
 
-def reduce_cmd_help_field(data):
-    # if cmd not exist, return cmds list field
-    if "command_count" in data:
-        return reduce_cmds_list_field(data)
-
-    # remove first level name field
-    if "name" in data:
-        del data["name"]
-
-    if (
-        "positionals" in data
-        and data["positionals"] is not None
-        and len(data["positionals"]) == 0
-    ):
-        del data["positionals"]
-
-    if "usage" in data:
-        example = data["usage"]
-        if "example" in data and data["example"].endswith(" -f yaml"):
-            example = data["example"][:-8]
-        if len(data["usage"]) < len(example):
-            data["usage"] = example
-
-    elif "example" in data:
-        example = data["example"]
-        if example.endswith(" -f yaml"):
-            data["usage"] = example[:-8]
+        elif "example" in item:
+            example = item["example"]
+            if example.endswith(" -f yaml"):
+                item["usage"] = example[:-8]
 
     # remove unnecessary fields
     fields = [
@@ -126,12 +111,70 @@ def reduce_cmd_help_field(data):
         "access",
         "domain",
         "browser",
-        "description",
         "output_formats",
         "positional",
         "type",
     ]
     return remove_fields(data, fields)
+
+
+# def reduce_cmds_list_field(data):
+#     fields = [
+#         "command_count",
+#         "commands",
+#         "name",
+#         "description",
+#     ]
+#     return keep_fields(data, fields)
+
+
+# def reduce_cmd_help_field(data):
+#     # if cmd not exist, return cmds list field
+#     if "command_count" in data:
+#         return reduce_cmds_list_field(data)
+
+#     # remove first level name field
+#     if "name" in data:
+#         del data["name"]
+
+#     if (
+#         "positionals" in data
+#         and data["positionals"] is not None
+#         and len(data["positionals"]) == 0
+#     ):
+#         del data["positionals"]
+
+#     if "usage" in data:
+#         example = data["usage"]
+#         if "example" in data and data["example"].endswith(" -f yaml"):
+#             example = data["example"][:-8]
+#         if len(data["usage"]) < len(example):
+#             data["usage"] = example
+
+#     elif "example" in data:
+#         example = data["example"]
+#         if example.endswith(" -f yaml"):
+#             data["usage"] = example[:-8]
+
+#     # remove unnecessary fields
+#     fields = [
+#         "site",
+#         "browser_common_options",
+#         "common_options",
+#         "next",
+#         "columns",
+#         "image_url",
+#         "example",
+#         "command",
+#         "access",
+#         "domain",
+#         "browser",
+#         "description",
+#         "output_formats",
+#         "positional",
+#         "type",
+#     ]
+#     return remove_fields(data, fields)
 
 
 class OpenCLITool:
@@ -331,7 +374,7 @@ class OpenCLITool:
     def _register_all_tools(self):
 
         # list cmds of one site
-        def cmds_list(site):
+        def site_help(site):
             if site not in self._sites:
                 return f"error: ({site}) is not a supported site name!"
             r = self._execute_opencli_command(f"{site} --help", format_output="yaml")
@@ -339,69 +382,103 @@ class OpenCLITool:
                 return r.error
             if r.data:
                 data = r.data
-                data = reduce_cmds_list_field(data)
+                data = reduce_site_help_field(data)
                 # print(data)
                 return data
 
             return r.stdout
 
         self.register(
-            name="cmds_list",
+            name="site_help",
             description=dedent("""\
-                列出单个网站(site)支持的全部命令
+                列出单个网站(site)支持的全部命令和参数
                 
                 输入：
                 网站名(site)
 
                 返回：
-                该网站(site)的全部命令   
+                该网站(site)的全部命令和参数   
             """),
             schema={
                 "type": "object",
                 "properties": {"site": {"type": "string"}},
                 "required": ["site"],
             },
-            fn=cmds_list,
+            fn=site_help,
         )
 
-        # help
-        def cmd_help(site, cmd):
-            if site not in self._sites:
-                return f"error: ({site}) is not a supported site name!"
-            r = self._execute_opencli_command(
-                f"{site} {cmd} --help", format_output="yaml"
-            )
-            if not r.success:
-                return r.error
-            if r.data:
-                data = r.data
-                data = reduce_cmd_help_field(data)
-                # print(data)
-                return data
+        # # list cmds of one site
+        # def cmds_list(site):
+        #     if site not in self._sites:
+        #         return f"error: ({site}) is not a supported site name!"
+        #     r = self._execute_opencli_command(f"{site} --help", format_output="yaml")
+        #     if not r.success:
+        #         return r.error
+        #     if r.data:
+        #         data = r.data
+        #         data = reduce_cmds_list_field(data)
+        #         # print(data)
+        #         return data
 
-            return r.stdout
+        #     return r.stdout
 
-        self.register(
-            name="cmd_help",
-            description=dedent("""\
-                查看单个网站(site)的单个命令(cmd)的帮助信息
+        # self.register(
+        #     name="cmds_list",
+        #     description=dedent("""\
+        #         列出单个网站(site)支持的全部命令
 
-                输入：
-                网站名(site), 命令(cmd)
+        #         输入：
+        #         网站名(site)
 
-                返回：
-                该命令(cmd)的详细参数信息
-            """),
-            schema={
-                "type": "object",
-                "properties": {
-                    "site": {"type": "string"},
-                    "cmd": {"type": "string"},
-                },
-                "required": ["site", "cmd"],
-            },
-            fn=cmd_help,
-        )
+        #         返回：
+        #         该网站(site)的全部命令
+        #     """),
+        #     schema={
+        #         "type": "object",
+        #         "properties": {"site": {"type": "string"}},
+        #         "required": ["site"],
+        #     },
+        #     fn=cmds_list,
+        # )
+
+        # # help
+        # def cmd_help(site, cmd):
+        #     if site not in self._sites:
+        #         return f"error: ({site}) is not a supported site name!"
+        #     r = self._execute_opencli_command(
+        #         f"{site} {cmd} --help", format_output="yaml"
+        #     )
+        #     if not r.success:
+        #         return r.error
+        #     if r.data:
+        #         data = r.data
+        #         data = reduce_cmd_help_field(data)
+        #         # print(data)
+        #         return data
+
+        #     return r.stdout
+
+        # self.register(
+        #     name="cmd_help",
+        #     description=dedent("""\
+        #         查看单个网站(site)的单个命令(cmd)的帮助信息
+
+        #         输入：
+        #         网站名(site), 命令(cmd)
+
+        #         返回：
+        #         该命令(cmd)的详细参数信息
+        #     """),
+        #     schema={
+        #         "type": "object",
+        #         "properties": {
+        #             "site": {"type": "string"},
+        #             "cmd": {"type": "string"},
+        #         },
+        #         "required": ["site", "cmd"],
+        #     },
+        #     fn=cmd_help,
+        # )
 
         # execute
         def cmd_exec(full_cmd, result_limit: int | None = None):
