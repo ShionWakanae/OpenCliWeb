@@ -259,6 +259,7 @@ class OpenCLITool:
         self,
         command,
         format_output="",
+        result_limit: int | None = None,
     ):
         format_output = format_output.lower()
         cmd = ["cmd", "/c", *self.base_args, *shlex.split(command)]
@@ -266,8 +267,8 @@ class OpenCLITool:
             cmd.extend(["-f", format_output])
 
         full_cmd = " ".join(cmd)
-        self.tools_success[full_cmd] += 1
-        if self.tools_success[full_cmd] > 1:
+        self.tools_success[f"{full_cmd} {result_limit}"] += 1
+        if self.tools_success[f"{full_cmd} {result_limit}"] > 1:
             return CommandResult(
                 success=False,
                 command=full_cmd,
@@ -518,7 +519,9 @@ class OpenCLITool:
                 if full_cmd.startswith(p):
                     full_cmd = full_cmd[len(p) :]
 
-            r = self._execute_opencli_command(full_cmd, format_output="yaml")
+            r = self._execute_opencli_command(
+                full_cmd, format_output="yaml", result_limit=result_limit
+            )
             if not r.success:
                 return r.error
             if r.data:
