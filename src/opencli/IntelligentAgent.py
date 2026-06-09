@@ -276,7 +276,7 @@ class IntelligentCLIAgent:
                 }
                 full_name = name + json.dumps(args, sort_keys=True)
                 self.opencli_tool.tools_called[full_name] += 1
-                if self.opencli_tool.tools_called[full_name] > 3:
+                if self.opencli_tool.tools_called[full_name] >= 5:
                     print("same tool and args over 3 times !!!")
                     yield {
                         "type": "trace",
