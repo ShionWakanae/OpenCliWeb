@@ -80,6 +80,7 @@ def reduce_site_help_field(data):
     if "commands" not in data:
         return data
     for item in data["commands"]:
+        # remove empty positionals
         if (
             "positionals" in item
             and item["positionals"] is not None
@@ -87,17 +88,34 @@ def reduce_site_help_field(data):
         ):
             del item["positionals"]
 
+        # shorten description
+        if "description" in item:
+            item["desc"] = item.pop("description")
+
+        # shorten and remove empty command_options
+        if "command_options" in item:
+            item["options"] = item.pop("command_options")
+            if item["options"] is not None and len(item["options"]) == 0:
+                del item["options"]
+
+        # use example if usage is shorter or missing
         if "usage" in item:
             example = item["usage"]
-            if "example" in item and item["example"].endswith(" -f yaml"):
-                example = item["example"][:-8]
+            if "example" in item:
+                example = item["example"]
+                if example.endswith(" -f yaml"):
+                    example = example[:-8]
             if len(item["usage"]) < len(example):
                 item["usage"] = example
-
         elif "example" in item:
             example = item["example"]
             if example.endswith(" -f yaml"):
-                item["usage"] = example[:-8]
+                example = example[:-8]
+            item["usage"] = example
+
+        # if usage ends with [options] but there are no options, remove it.
+        if "options" not in item and item["usage"].endswith(" [options]"):
+            item["usage"] = item["usage"][:-10]
 
     # remove unnecessary fields
     fields = [
