@@ -584,10 +584,12 @@ class OpenCLITool:
                 ## full_cmd
                 执行某个完整命令字符串，大小写敏感                
                 
-                完整命令字符串的拼接格式:
-                (site) (cmd) <command_options> --limit=条数
+                完整命令字符串的组成:"网站名称 命令名称 单个或多个positional参数 单个或多个option参数"
                 
-                当需要控制返回结果条数, 且命令支持--limit 参数时:
+                样例格式如下:
+                site cmd positional(s) option(s)
+                
+                当需要控制返回结果条数, 且options参数中包含 limit 时:
                 必须在添加 --limit 参数！
                 
                 不要输入：
