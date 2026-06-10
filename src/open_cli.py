@@ -19,7 +19,7 @@ async def main(question, think=False, verbose=False):
     model_name = ""
     prompt_tokens = 0
     completion_tokens = 0
-    last_print_char = ""
+    last_print_char = "\n"
     streaming_start = time.perf_counter()
     async for event in service.stream_answer(question, think=think, verbose=verbose):
         if event["type"] == "token":
@@ -29,7 +29,6 @@ async def main(question, think=False, verbose=False):
                     "Streaming...",
                     need_newline_first=last_print_char != "\n",
                 )
-                last_print_char = "\n"
                 first_token = True
                 streaming_start = time.perf_counter()
             accumulated += chunk
