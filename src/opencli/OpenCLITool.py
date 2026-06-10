@@ -267,7 +267,6 @@ class OpenCLITool:
             cmd.extend(["-f", format_output])
 
         full_cmd = " ".join(cmd)
-        self.tools_success[f"{full_cmd} {result_limit}"] += 1
         if self.tools_success[f"{full_cmd} {result_limit}"] > 1:
             return CommandResult(
                 success=False,
@@ -333,6 +332,7 @@ class OpenCLITool:
                     if self.verbose:
                         print(traceback.format_exc())
 
+            self.tools_success[f"{full_cmd} {result_limit}"] += 1
             return CommandResult(
                 success=True,
                 command=full_cmd,
