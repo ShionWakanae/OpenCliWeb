@@ -202,10 +202,10 @@ def main():
                     quick_questions = [
                         "我能查看哪些网站？",
                         "B站上若苗瞬的文章",
+                        "B站若苗瞬的动态时间线",
                         "今日头条的5条热门新闻",
                         "知乎上的热门内容",
-                        "查查Arxiv上Ivan Perov的论文",
-                        "Node.js里@jackwener/opencli的下载量",
+                        "Arxiv上Ivan Perov的论文",
                     ]
 
                     for q in quick_questions:
@@ -725,7 +725,6 @@ def main():
                         (time.perf_counter() - streaming_start),
                         2,
                     )
-                    print()
                     log("Answer completed")
                     log("----------------")
                     log(
