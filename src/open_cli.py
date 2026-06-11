@@ -32,7 +32,7 @@ async def main(question, think=False, verbose=False):
                 first_token = True
                 streaming_start = time.perf_counter()
             accumulated += chunk
-            # 遇到句号、感叹号、问号或换行时输出
+            # 遇到换行，或超过某长度个字符时输出
             if "\n" in accumulated or len(accumulated) > 23:
                 print(f"[bright_magenta]{accumulated}[/]", end="", flush=True)
                 last_print_char = accumulated[-1]

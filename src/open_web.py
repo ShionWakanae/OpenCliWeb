@@ -200,7 +200,7 @@ def main():
                     min-w-0
                 """):
                     quick_questions = [
-                        "我能查看哪些网站？",
+                        "我能查看哪些网站(sites)？",
                         "B站上若苗瞬的文章",
                         "B站若苗瞬的动态时间线",
                         "今日头条的5条热门新闻",
@@ -365,7 +365,7 @@ def main():
                                 ):
                                     message_id += 1
                                     # "trace": trace_message_ui.content,
-                                    with ui.expansion("思考过程").style(
+                                    with ui.expansion("执行过程").style(
                                         "width: 100%; max-width: 100%; overflow-x: auto;"
                                     ):
                                         ui.html(item.get("trace", "")).style(
@@ -529,7 +529,7 @@ def main():
                                         "facebook", size="md"
                                     ).classes("mt-0 mb-0")
                                     assistant_answer_spinner.set_visibility(False)
-                                    trace_expansion = ui.expansion("思考中……").style(
+                                    trace_expansion = ui.expansion("执行中……").style(
                                         "width: 100%; max-width: 100%; overflow-x: auto;"
                                     )
                                     trace_expansion.open()
@@ -551,6 +551,7 @@ def main():
                     timing = {}
                     # consume
                     accumulated = ""
+                    accumulated_reasoning = ""
                     model_name = ""
                     prompt_tokens = 0
                     completion_tokens = 0
@@ -581,7 +582,8 @@ def main():
                             ):
                                 assistant_answer_spinner.set_visibility(True)
                             accumulated += event["text"]
-                            if "\n" in accumulated:
+                            # still need a len limit, for a very long answer without newline
+                            if "\n" in accumulated or len(accumulated) > 150:
                                 assistant_message_content += accumulated
                                 accumulated = ""
                                 assistant_message.content = render_markdown_html(
@@ -594,12 +596,18 @@ def main():
                             if not first_reasoning:
                                 log("Reasoning...")
                                 first_reasoning = True
-                            trace_message_content += event["text"]
-                            trace_message_ui.content = render_markdown_html(
-                                trace_message_content
-                            )
-                            trace_message_ui.update()
-                            auto_scroll_chat(client)
+                            accumulated_reasoning += event["text"]
+                            if (
+                                "\n" in accumulated_reasoning
+                                or len(accumulated_reasoning) > 150
+                            ):
+                                trace_message_content += accumulated_reasoning
+                                accumulated_reasoning = ""
+                                trace_message_ui.content = render_markdown_html(
+                                    trace_message_content
+                                )
+                                trace_message_ui.update()
+                                auto_scroll_chat(client)
 
                         elif event["type"] == "usage":
                             if not model_name:
@@ -716,7 +724,7 @@ def main():
                     trace_message_ui.content = render_markdown_html(
                         f"```markdown\n{trace_message_content}{trace_code_end}"
                     )
-                    trace_expansion.text = "思考过程"
+                    trace_expansion.text = "执行过程"
                     trace_expansion.close()
                     trace_message_ui.update()
                     auto_scroll_chat(client)
