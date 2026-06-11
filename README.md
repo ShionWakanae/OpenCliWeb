@@ -1,16 +1,29 @@
 # 项目简介
-[![Me on CSDN](https://img.shields.io/badge/若苗瞬-CSDN-blue)](https://blog.csdn.net/ddrfan?type=blog)
-[![Me on Bilibili](https://img.shields.io/badge/欢迎-bilibili-red?style=flat&logo=youtube)](https://space.bilibili.com/688222797)
+[![Me on CSDN](https://img.shields.io/badge/若苗瞬-CSDN-blue)](https://blog.csdn.net/ddrfan?type=blog) [![Me on Bilibili](https://img.shields.io/badge/欢迎-bilibili-red?style=flat&logo=youtube)](https://space.bilibili.com/688222797)
 
 **简体中文** | [English](README_en.md)
 
-## 项目简介
+## 关于
 > [!Note]
->这是基于OpenCLI的问答系统。WEBUI来自我的[企业知识库](https://github.com/ShionWakanae/Llamarkdown)项目的外壳。  
->
->它和直接使用OpenCLI命令行有什么区别？  
->这个项目是让LLM判断你的问题并调用OpenCLI，最后进行WEB页面的展示。  
->可能得不到正确的指令和结果，也可能会更加省事儿……
+> 这是个基于[OpenCLI](https://github.com/jackwener/openCLI)的问答系统，继承了查询各种网站的功能。
+> 因为需要身份的时候使用的是用户的个人凭证，所以叫《个人小助理》。
+> WEBUI来自我的[企业知识库](https://github.com/ShionWakanae/Llamarkdown)项目。  
+
+## 特点
+
+本项目和直接使用OpenCLI命令行有什么区别？  
+
+1. 用LLM判断并考虑调用OpenCLI的顺序和逻辑。
+2. 用户只需要提出自己的问题或需求。
+
+本项目和用Agent通过skill调用openCLI有什么区别？
+
+1. 简化操作流程和数据结构，只能操作网站(site)类型。
+2. 用在线LLM可以省很多Token。
+3. 用本地LLM更容易Hold住，成功完成任务。
+4. 也许相当于自行车对比汽车: 下坡省力，上坡省油。
+
+
 
 ![](res/cat_typing.gif)
 
