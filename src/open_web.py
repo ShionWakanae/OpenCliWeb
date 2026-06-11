@@ -200,12 +200,13 @@ def main():
                     min-w-0
                 """):
                     quick_questions = [
-                        "我能查看哪些网站(sites)？",
-                        "B站上若苗瞬的文章",
+                        "我能查看哪些网站(sites)",
+                        "B站若苗瞬的文章",
                         "B站若苗瞬的动态时间线",
-                        "今日头条的5条热门新闻",
-                        "知乎上的热门内容",
+                        "今日头条5条热门",
+                        "携程上米易县的景点",
                         "Arxiv上Ivan Perov的论文",
+                        "devto的最新文章",
                     ]
 
                     for q in quick_questions:
