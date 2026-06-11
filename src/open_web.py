@@ -382,22 +382,6 @@ def main():
                                         MathJax.typesetPromise([el]);
                                     }}
                                     """)
-                            if item["sources"]:
-                                with (
-                                    ui.row()
-                                    .classes("gap-2 mt-0 mb-0")
-                                    .style("max-width: 95%;")
-                                ):
-                                    for source in item["sources"]:
-                                        with ui.row().classes("items-start gap-0"):
-                                            ui.link(
-                                                f"""
-                                                📄{Path(source["file_name"]).stem}
-                                                """,
-                                                target=None,
-                                            ).style(
-                                                "cursor: pointer; text-decoration: none;"
-                                            )
 
                 alen = len(chat_scroll.default_slot.children)
                 clear_badge.set_text(f"{alen}")
@@ -641,7 +625,6 @@ def main():
                             trace_message_ui.update()
                             auto_scroll_chat(client)
 
-                        # sources
                         elif event["type"] == "tool":
                             streaming_start = time.perf_counter()
                             if (
@@ -790,7 +773,6 @@ def main():
                         "answer": assistant_message.content,
                         "atime": atime,
                         "confirm": False,
-                        "sources": [],
                     }
                     chat_history.append(history_item)
 
