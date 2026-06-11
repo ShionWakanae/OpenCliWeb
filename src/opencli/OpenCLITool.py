@@ -119,81 +119,21 @@ def reduce_site_help_field(data):
 
     # remove unnecessary fields
     fields = [
-        "site",
-        "browser_common_options",
-        "common_options",
-        "next",
-        "columns",
-        "image_url",
-        "example",
-        "command",
-        "access",
-        "domain",
-        "browser",
-        "output_formats",
-        "positional",
+        "site",  # one site help
+        "browser_common_options",  # do not send browser common options
+        "common_options",  # do not send common options
+        "next",  # no next command
+        "columns",  # no need to know detail
+        "example",  # is transfered to usage
+        "command",  # dup with usage and example
+        "access",  # no need to know detail
+        "domain",  # no need to know detail
+        "browser",  # no need to know detail
+        "positional",  # all positionals are positional
+        "required",  # all positionals are required
         "type",
     ]
     return remove_fields(data, fields)
-
-
-# def reduce_cmds_list_field(data):
-#     fields = [
-#         "command_count",
-#         "commands",
-#         "name",
-#         "description",
-#     ]
-#     return keep_fields(data, fields)
-
-
-# def reduce_cmd_help_field(data):
-#     # if cmd not exist, return cmds list field
-#     if "command_count" in data:
-#         return reduce_cmds_list_field(data)
-
-#     # remove first level name field
-#     if "name" in data:
-#         del data["name"]
-
-#     if (
-#         "positionals" in data
-#         and data["positionals"] is not None
-#         and len(data["positionals"]) == 0
-#     ):
-#         del data["positionals"]
-
-#     if "usage" in data:
-#         example = data["usage"]
-#         if "example" in data and data["example"].endswith(" -f yaml"):
-#             example = data["example"][:-8]
-#         if len(data["usage"]) < len(example):
-#             data["usage"] = example
-
-#     elif "example" in data:
-#         example = data["example"]
-#         if example.endswith(" -f yaml"):
-#             data["usage"] = example[:-8]
-
-#     # remove unnecessary fields
-#     fields = [
-#         "site",
-#         "browser_common_options",
-#         "common_options",
-#         "next",
-#         "columns",
-#         "image_url",
-#         "example",
-#         "command",
-#         "access",
-#         "domain",
-#         "browser",
-#         "description",
-#         "output_formats",
-#         "positional",
-#         "type",
-#     ]
-#     return remove_fields(data, fields)
 
 
 class OpenCLITool:
@@ -285,7 +225,7 @@ class OpenCLITool:
             cmd.extend(["-f", format_output])
 
         full_cmd = " ".join(cmd)
-        if self.tools_success[f"{full_cmd} {result_limit}"] > 1:
+        if self.tools_success[f"{full_cmd} {result_limit}"] >= 1:
             return CommandResult(
                 success=False,
                 command=full_cmd,
@@ -441,79 +381,6 @@ class OpenCLITool:
             fn=site_help,
         )
 
-        # # list cmds of one site
-        # def cmds_list(site):
-        #     if site not in self._sites:
-        #         return f"error: ({site}) is not a supported site name!"
-        #     r = self._execute_opencli_command(f"{site} --help", format_output="yaml")
-        #     if not r.success:
-        #         return r.error
-        #     if r.data:
-        #         data = r.data
-        #         data = reduce_cmds_list_field(data)
-        #         # print(data)
-        #         return data
-
-        #     return r.stdout
-
-        # self.register(
-        #     name="cmds_list",
-        #     description=dedent("""\
-        #         列出单个网站(site)支持的全部命令
-
-        #         输入：
-        #         网站名(site)
-
-        #         返回：
-        #         该网站(site)的全部命令
-        #     """),
-        #     schema={
-        #         "type": "object",
-        #         "properties": {"site": {"type": "string"}},
-        #         "required": ["site"],
-        #     },
-        #     fn=cmds_list,
-        # )
-
-        # # help
-        # def cmd_help(site, cmd):
-        #     if site not in self._sites:
-        #         return f"error: ({site}) is not a supported site name!"
-        #     r = self._execute_opencli_command(
-        #         f"{site} {cmd} --help", format_output="yaml"
-        #     )
-        #     if not r.success:
-        #         return r.error
-        #     if r.data:
-        #         data = r.data
-        #         data = reduce_cmd_help_field(data)
-        #         # print(data)
-        #         return data
-
-        #     return r.stdout
-
-        # self.register(
-        #     name="cmd_help",
-        #     description=dedent("""\
-        #         查看单个网站(site)的单个命令(cmd)的帮助信息
-
-        #         输入：
-        #         网站名(site), 命令(cmd)
-
-        #         返回：
-        #         该命令(cmd)的详细参数信息
-        #     """),
-        #     schema={
-        #         "type": "object",
-        #         "properties": {
-        #             "site": {"type": "string"},
-        #             "cmd": {"type": "string"},
-        #         },
-        #         "required": ["site", "cmd"],
-        #     },
-        #     fn=cmd_help,
-        # )
-
         # execute
         def cmd_exec(full_cmd, result_limit: int | None = None):
             def extract_limit(full_cmd):
@@ -566,7 +433,12 @@ class OpenCLITool:
 
                     if "toutiao" in full_cmd:
                         data = process_toutiao_data(data)
-                    result["data"] = data
+
+                    # remove unnecessary fields
+                    fields = [
+                        "image_url",  # no need
+                    ]
+                    result["data"] = remove_fields(data, fields)
 
                 except Exception as e:
                     print(f"处理 result_limit 时出错: {e}")
@@ -584,10 +456,11 @@ class OpenCLITool:
                 ## full_cmd
                 执行某个完整命令字符串，大小写敏感                
                 
-                完整命令字符串的组成:"网站名称 命令名称 单个或多个positional参数 单个或多个option参数"
+                完整命令字符串的组成: 
+                "网站名称 命令名称 positional参数1 positional参数2 ... --option参数1 值1 --option参数2 值2 ..."
                 
-                样例格式如下:
-                site cmd positional(s) option(s)
+                格式如下:
+                site cmd positional(s) --option(s) option_value
                 
                 当需要控制返回结果条数, 且options参数中包含 limit 时:
                 必须在添加 --limit 参数！
