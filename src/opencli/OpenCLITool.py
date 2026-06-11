@@ -365,13 +365,11 @@ class OpenCLITool:
         self.register(
             name="site_help",
             description=dedent("""\
-                列出单个网站(site)支持的全部命令和参数
-                
                 输入：
                 网站名(site)
 
                 返回：
-                该网站(site)的全部命令和参数   
+                该网站(site)的全部命令(cmd)和参数
             """),
             schema={
                 "type": "object",
@@ -453,32 +451,30 @@ class OpenCLITool:
         self.register(
             name="cmd_exec",
             description=dedent("""\
-                ## full_cmd
-                执行某个完整命令字符串，大小写敏感                
-                
+                ## **full_cmd**
+                待执行的完整命令字符串(大小写敏感)
+
                 完整命令字符串的组成: 
                 "网站名称 命令名称 positional参数1 positional参数2 ... --option参数1 值1 --option参数2 值2 ..."
-                
+
                 格式如下:
                 site cmd positional(s) --option(s) option_value
                 
-                当需要控制返回结果条数, 且options参数中包含 limit 时:
-                必须在添加 --limit 参数！
-                
-                不要输入：
-                "full_cmd"字符串本身
+                控制条数:
+                需要控制返回条数时, 只要 options 中包含 limit参数 ，则必须添加 --limit
 
                 不要输入：
+                "full_cmd"字符串本身
                 opencli
                 cmd
                 -f 格式
                 系统会自动补充
 
-                ## result_limit
+                ## **result_limit**
                 如需限制条数则必须传入 result_limit 参数, 可与 --limit 同时使用
-                
+
                 例如：
-                result_limit = 10
+                result_limit = 5
             """),
             schema={
                 "type": "object",
