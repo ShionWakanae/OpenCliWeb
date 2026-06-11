@@ -152,7 +152,7 @@ class OpenCLIService:
 
         # def on_execute(event):
         #     events.append(event)
-        log(f"[Service] Start LLM provider: {settings.llm_api_base}", False)
+        log(f"[Service] LLM provider: {settings.llm_api_base}", False)
         agent = create_agent(
             base_url=settings.llm_api_base,
             api_key=settings.llm_api_key,
