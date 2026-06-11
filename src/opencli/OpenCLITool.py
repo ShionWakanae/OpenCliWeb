@@ -317,20 +317,18 @@ class OpenCLITool:
 
     # list sites
     def _sites_list(self):
-        r = self._execute_opencli_command("list")
+        r = self._execute_opencli_command(command="--help", format_output="yaml")
         if not r.success:
             log(r.error)
             raise Exception(r.error)
-
-        sites = []
-        for line in r.stdout.splitlines():
-            if re.match(
-                r"^  \S+\s*$",
-                line,
-            ):
-                sites.append(line.strip())
-
-        return sites
+        if r.data:
+            if "site_adapters" in r.data:
+                if "sites" in r.data["site_adapters"]:
+                    data = r.data["site_adapters"]["sites"]
+                    # print(data)
+                    return data
+        print(r)
+        raise Exception("获取网站列表失败!")
 
     # register
     def register(self, *, name, description, schema, fn):
