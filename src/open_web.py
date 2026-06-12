@@ -716,8 +716,10 @@ def main():
                         (time.perf_counter() - streaming_start),
                         2,
                     )
-                    log("Answer completed")
-                    log("----------------")
+                    if got_answer:
+                        log("Answer completed")
+                    else:
+                        log("No answer...")
                     log(
                         f"Retrieval: {timing.get('query_ms', 0)} ms, Answers: {timing.get('llm_ms', 0)} ms, Total: {timing.get('total_ms', 0)} ms",
                         False,
