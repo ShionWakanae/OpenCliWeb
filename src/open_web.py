@@ -1,5 +1,4 @@
 import datetime
-from pathlib import Path
 import traceback
 import markdown
 from nicegui import ui, app, context, background_tasks
