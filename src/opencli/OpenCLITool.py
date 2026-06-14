@@ -408,12 +408,7 @@ class OpenCLITool:
         # 保存
         try:
             with open(cache_file, "w", encoding="utf-8") as f:
-                json.dump(
-                    cache,
-                    f,
-                    ensure_ascii=False,
-                    indent=2,
-                )
+                json.dump(cache, f, ensure_ascii=False, indent=2)
         except Exception:
             if self.verbose:
                 print(traceback.format_exc())
