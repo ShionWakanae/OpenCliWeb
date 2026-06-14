@@ -17,6 +17,7 @@ body {
     user-select: none;
     transition: all 0.2s ease;
     pointer-events: auto;
+    white-space: nowrap;
 }
 
 .quick-star:hover {

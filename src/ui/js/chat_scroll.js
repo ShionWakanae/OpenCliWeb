@@ -79,6 +79,7 @@
         const emptyState = getEmptyState();
         if (emptyState) {
             emptyState.style.opacity = hasChildren ? '0.0' : '1';
+            emptyState.style.pointerEvents = hasChildren ? 'none' : 'auto';
         }
     }
 
