@@ -97,8 +97,8 @@ class IntelligentCLIAgent:
 
             ## 输出格式
             - 用友好的方式向用户展示结果
-            - 禁止用Latex符号(比如 $\rightarrow$ 等), 请用普通文本代替
-            - 不要隐藏超链接
+            - 不要用Latex符号(比如 $\rightarrow$ 等), 请用普通文本代替
+            - 用Markdown格式展示链接(保留链接很重要)
             - 如果工具返回错误，解释可能的原因并给出建议
             """)
 

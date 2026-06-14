@@ -4,6 +4,26 @@ body {
     color: #e0e0e0;
 }
 
+.suggestion-cloud {
+    position: absolute;
+    inset: 0;
+}
+
+.quick-star {
+    position: absolute;
+    cursor: pointer;
+    color: gray;
+    font-size: 14px;
+    user-select: none;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+}
+
+.quick-star:hover {
+    color: white;
+    transform: translateY(-2px) scale(1.05);
+}
+
 .chat-area {
     overflow-y: auto;
     -webkit-mask-image: linear-gradient(to bottom, black 0%, black 100%);

@@ -188,7 +188,7 @@ def main():
                 with ui.row().classes("""
                     gt-sm
                     items-center
-                    gap-4
+                    gap-5
                     ml-4
                     mr-4
                     no-wrap
@@ -197,14 +197,14 @@ def main():
                     min-w-0
                 """):
                     quick_questions = [
-                        "我能查看哪些网站(sites)",
                         "B站若苗瞬的文章",
                         "B站若苗瞬的动态时间线",
-                        "今日头条5条热门",
                         "携程上米易县的景点",
                         "Arxiv上Ivan Perov的论文",
                         "devto的最新文章",
                         "成都明天的天气",
+                        "查询国旗法的信息",
+                        "什么值得买上5060Ti16GB",
                     ]
 
                     for q in quick_questions:
@@ -304,6 +304,58 @@ def main():
                 )
 
                 with empty_state:
+                    # 星云区域快捷提问
+                    suggestions = [
+                        # ring1
+                        ("☆帮助", "我能查看哪些网站(sites)？", -20, -210),
+                        ("☆B站", "B站的5条热门内容。", -110, -200),
+                        ("☆抖音", "抖音的5条热门内容。", 70, -200),
+                        ("☆reddit", "reddit的5条热门内容。", -170, -150),
+                        ("☆头条", "今日头条前5条新闻。", 130, -150),
+                        (
+                            "☆dblp",
+                            "dblp上搜索'attention is all you need'。",
+                            -190,
+                            -100,
+                        ),
+                        ("☆36k", "36k的5条热门内容。", 150, -100),
+                        ("☆电影", "豆瓣上的5个热门电影。", -180, -45),
+                        ("☆新浪", "新浪财经的滚动新闻。", 140, -45),
+                        # ring2
+                        ("☆介绍", "请问你是什么模型？能帮我做啥事儿？", -20, -280),
+                        ("☆微博", "微博上的5条热门内容。", -160, -250),
+                        ("☆知乎", "知乎上的5条热门内容。", 130, -250),
+                        ("☆词典", "在dictionary上查询token。", -250, -195),
+                        ("☆酒店", "携程上后天入住成都的酒店。", 220, -195),
+                        # ring3
+                        ("☆举例", "铁路12306有哪些命令？", -20, -355),
+                        (
+                            "☆火车",
+                            "查查后天从成都到上海的火车。找到G字头、有二等座、最快的车次。查询那趟车的票价和停站详情。",
+                            -230,
+                            -320,
+                        ),
+                        ("☆股票", "看看东方财富热股榜。", 200, -320),
+                    ]
+
+                    with ui.element("div").classes("suggestion-cloud"):
+                        for text, question, x, y in suggestions:
+                            star = (
+                                ui.label(text)
+                                .classes("quick-star")
+                                .style(f"""
+                                    left: calc(50% + {x}px);
+                                    top: calc(50% + {y}px);
+                                """)
+                            )
+                            with star:
+                                ui.tooltip(question)
+
+                            star.on(
+                                "click",
+                                lambda e, q=question: send_message(q),
+                            )
+
                     ui.image("/static/images/logo.png").style(
                         "width: 128px; height: 128px; opacity: 0.9;"
                     )
@@ -313,7 +365,7 @@ def main():
                     )
 
                     ui.label(
-                        "通过OpenCLI查询 Bilibili、微博、小红书、抖音等平台的内容"
+                        "我可以通过OpenCLI帮您查询\n社交媒体、新闻、天气、论文等多方面内容"
                     ).style("""
                         white-space: pre-line;
                         text-align: center;
@@ -331,7 +383,6 @@ def main():
                         """
                         flex: 1;
                         overflow-y: auto;
-                        background: #303030;
                         border: none;
                         border-radius: 8px;
                         padding: 12px;
