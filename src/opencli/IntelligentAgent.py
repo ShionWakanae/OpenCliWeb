@@ -37,15 +37,13 @@ class IntelligentCLIAgent:
         self,
     ):
         """获取系统提示词"""
-
-        sites_str = "\n".join(self.opencli_tool._sites)
         return dedent(rf"""\
             你是一个智能助手，能够使用工具来操作网站, 获取信息
             使用 {settings.language} 回答用户问题
 
             ## 可用网站列表[site list]：
 
-            {sites_str}
+            {self.opencli_tool.prompt}
 
             ## 可用工具：
 

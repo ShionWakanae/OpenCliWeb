@@ -9,7 +9,10 @@ from textwrap import dedent
 from dataclasses import dataclass
 from typing import Any
 from collections import defaultdict
+from pathlib import Path
+import asyncio
 from utils.logger import logger
+from opencli.SiteAgent import SiteAgent
 
 log = logger.log
 
@@ -154,8 +157,18 @@ class OpenCLITool:
         self.tools_success = defaultdict(int)
         self._functions = {}
         self._schemas = {}
-        self._sites = self._sites_list()
+        self._site_agent = SiteAgent()
         self._register_all_tools()
+        self._sites = self._sites_list()
+        self._sites_metadata = self._load_sites_metadata()
+
+        self.prompt = ""
+        for site in self._sites:
+            desc = self._sites_metadata.get(site, {}).get("desc", "")
+            self.prompt += f"- {site}"
+            if desc:
+                self.prompt += f" ({desc})"
+            self.prompt += "\n"
 
     def _execute_any_command(
         self,
@@ -221,7 +234,7 @@ class OpenCLITool:
     ):
         format_output = format_output.lower()
         cmd = ["cmd", "/c", *self.base_args, *shlex.split(command)]
-        if format_output and "-f" not in command and "--format" not in command:
+        if format_output and "-f " not in command and "--format " not in command:
             cmd.extend(["-f", format_output])
 
         full_cmd = " ".join(cmd)
@@ -329,6 +342,83 @@ class OpenCLITool:
                     return data
         print(r)
         raise Exception("获取网站列表失败!")
+
+    def site_help_summary_source(self, site):
+        data = self._functions["site_help"](site)
+        result = []
+        for cmd in data.get("commands", []):
+            result.append(
+                {
+                    "name": cmd.get("name"),
+                    "description": cmd.get("desc"),
+                }
+            )
+
+        return result
+
+    # maintain sites metadata
+    def _load_sites_metadata(self):
+        cache_file = Path("./data/sites_metadata.json")
+        # 创建目录
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        # 读取缓存
+        cache = {}
+        if cache_file.exists():
+            try:
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    cache = json.load(f)
+            except Exception:
+                if self.verbose:
+                    print(traceback.format_exc())
+                cache = {}
+
+        active_sites = set()
+
+        # 检查所有当前支持的 site
+        for site in self._sites:
+            active_sites.add(site)
+            # cache命中
+            if site in cache and cache[site].get("desc") != "":
+                continue
+
+            # cache未命中
+            try:
+                help_data = self.site_help_summary_source(site)
+                desc = asyncio.run(
+                    self._site_agent.generate_site_description(
+                        site,
+                        help_data,
+                    )
+                )
+                cache[site] = {"desc": desc}
+                log(f"[SiteMetadata] Added: {site}")
+            except Exception as e:
+                log(f"[SiteMetadata] Failed: {site} ({e})")
+                print(traceback.format_exc())
+                cache[site] = {
+                    "desc": "",
+                }
+
+        # 删除已失效site
+        obsolete_sites = [site for site in cache.keys() if site not in active_sites]
+        for site in obsolete_sites:
+            del cache[site]
+            log(f"[SiteMetadata] Removed: {site}")
+
+        # 保存
+        try:
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump(
+                    cache,
+                    f,
+                    ensure_ascii=False,
+                    indent=2,
+                )
+        except Exception:
+            if self.verbose:
+                print(traceback.format_exc())
+
+        return cache
 
     # register
     def register(self, *, name, description, schema, fn):
