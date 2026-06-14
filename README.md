@@ -64,6 +64,8 @@ WEBUI_PASSWORD=123456                       #WebUI密码
 
 HOST=127.0.0.1                              #WebUI主机地址
 PORT=7860                                   #WebUI端口
+
+LANGUAGE=简体中文                            #人类语言的全程
 ```
 
 ## ℹ️（2）信息查询

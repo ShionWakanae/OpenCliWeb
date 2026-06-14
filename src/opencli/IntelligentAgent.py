@@ -6,6 +6,7 @@ from textwrap import dedent
 from openai import AsyncOpenAI
 from opencli.OpenCLITool import OpenCLITool
 from utils.logger import logger
+from utils.settings import settings
 
 log = logger.log
 
@@ -40,6 +41,7 @@ class IntelligentCLIAgent:
         sites_str = "\n".join(self.opencli_tool._sites)
         return dedent(rf"""\
             你是一个智能助手，能够使用工具来操作网站, 获取信息
+            使用 {settings.language} 回答用户问题
 
             ## 可用网站列表[site list]：
 
@@ -87,7 +89,7 @@ class IntelligentCLIAgent:
 
             ## 禁止：
             - 禁止调用工具获取不必要的数据: 仅尝试获取必要的数据
-            - 禁止编造数据: 必须调用工具取得真实数据
+            - 禁止编造数据: 仅使用调用工具取得的真实数据
             - 禁止猜测指令参数: 必须先调用 site_help() 确认支持的命令和参数
             - 禁止重复调用 site_help()
             - 如果 cmd_exec() 返回正常数据: 禁止用相同的参数反复调用
@@ -95,7 +97,7 @@ class IntelligentCLIAgent:
 
             ## 输出格式
             - 用友好的方式向用户展示结果
-            - 不要用Latex符号, 比如 $\rightarrow$ 等
+            - 禁止用Latex符号(比如 $\rightarrow$ 等), 请用普通文本代替
             - 不要隐藏超链接
             - 如果工具返回错误，解释可能的原因并给出建议
             """)

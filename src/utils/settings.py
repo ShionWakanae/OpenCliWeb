@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 
 version_num = "0.3.0"
 
+
 class Settings:
     def __init__(self):
         load_dotenv()
@@ -14,7 +15,10 @@ class Settings:
         self.llm_api_base = self._required("LLM_API_BASE")
         self.llm_api_key = self._required("LLM_API_KEY")
         self.llm_model = self._required("LLM_MODEL")
-        self.storage_secret = self._required("STORAGE_SECRET")  # you need this
+        self.storage_secret = self._required(
+            "STORAGE_SECRET"
+        )  # you need this to use the storage
+        self.language = os.getenv("LANGUAGE", "简体中文")
 
     def _required(self, key: str):
         value = os.getenv(key)
@@ -22,5 +26,6 @@ class Settings:
             raise ValueError(f"Missing required environment variable: {key}")
 
         return value
+
 
 settings = Settings()
