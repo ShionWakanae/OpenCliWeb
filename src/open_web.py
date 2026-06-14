@@ -82,8 +82,6 @@ def main():
         clear_menu_item.style("filter: grayscale(1);")
         clear_badge.set_text("0")
         clear_badge.set_background_color("gray")
-        switch_debug.set_value(False)
-        switch_debug.set_enabled(False)
         debug_panel.content = """
         <div class="debug-panel">
             waiting for data...
@@ -206,16 +204,13 @@ def main():
                         "携程上米易县的景点",
                         "Arxiv上Ivan Perov的论文",
                         "devto的最新文章",
+                        "成都明天的天气",
                     ]
 
                     for q in quick_questions:
                         ui.button(q, on_click=lambda msg=q: send_message(msg)).props(
                             "flat dense size=sm"
                         )
-                    switch_debug = ui.switch(
-                        "debug", on_change=lambda e: show_hide_debug_panel(e.value)
-                    )
-                    switch_debug.set_enabled(False)
 
             # =========================
             # 右侧固定区域，版本号，菜单。
@@ -433,7 +428,7 @@ def main():
             .style("padding-top: 4px; padding-bottom: 28px;")
         ):
             with (
-                ui.input(placeholder="请输入简短关键字或完整问题...")
+                ui.input(placeholder="请输入您的问题或想查询的内容...")
                 .classes("chat-input")
                 .props("clearable type=text inputmode=text enterkeyhint=send")
                 .style("""
@@ -472,8 +467,6 @@ def main():
                     clear_badge.set_background_color("gray")
 
                     input_box.disable()
-                    switch_debug.set_value(False)
-                    switch_debug.set_enabled(False)
                     print("=" * 60)
                     log(f"[Question] [bold bright_yellow]{message}[/]", False)
                     # reset status
@@ -689,7 +682,6 @@ def main():
                         elif event["type"] == "debug":
                             timing = event
                             debug_panel.update()
-                            switch_debug.set_enabled(False)
 
                         # status
                         elif event["type"] == "status":
