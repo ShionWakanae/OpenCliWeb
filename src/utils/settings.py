@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-version_num = "0.3.0"
+version_num = "1.0.0"
 
 
 class Settings:

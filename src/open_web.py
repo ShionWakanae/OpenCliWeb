@@ -349,7 +349,7 @@ def main():
                                 """)
                             )
                             with star:
-                                ui.tooltip(question)
+                                ui.tooltip(f"示例：{question}")
 
                             star.on(
                                 "click",
