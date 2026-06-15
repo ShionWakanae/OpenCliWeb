@@ -74,12 +74,13 @@
         if (!area || !container) return;
 
         var hasChildren = area.children.length > 0;
-        container.style.height = hasChildren ? '100%' : '70%';
+        container.style.height = hasChildren ? '100%' : '75%';
 
         const emptyState = getEmptyState();
         if (emptyState) {
             emptyState.style.opacity = hasChildren ? '0.0' : '1';
             emptyState.style.pointerEvents = hasChildren ? 'none' : 'auto';
+            emptyState.style.display = hasChildren ? 'none' : 'flex';
         }
     }
 

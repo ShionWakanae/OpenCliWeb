@@ -1,6 +1,9 @@
 import datetime
 import traceback
 import markdown
+import json
+import math
+from pathlib import Path
 from nicegui import ui, app, context, background_tasks
 from rich import print
 import time
@@ -152,6 +155,70 @@ def main():
             outer_container.style(remove="max-width: 1280px;")
             outer_container.style("max-width: 960px;")
             right_column.style("display: none;")
+
+    def load_sites_data():
+        """从JSON文件加载站点数据"""
+        json_path = Path("./data/sites_metadata.json")
+        if not json_path.exists():
+            return None
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not data or len(data) == 0:
+                return None
+            return data
+        except Exception:
+            return None
+
+    def create_spiral_layout(sites_data):
+        """创建螺旋布局，使用相对定位"""
+        if not sites_data:
+            return
+
+        items = [(key, data.get("desc", "")) for key, data in sites_data.items()]
+        total = len(items)
+
+        # 螺旋参数
+        angle_step = 1060 / total  # 总角度均匀分布
+        radius_step = 40  # 每圈半径增量
+        start_radius = 350  # 起始半径
+
+        for i, (site_key, description) in enumerate(items):
+            # 计算角度和半径
+            angle = i * angle_step
+            radius = start_radius + (i / (total / 3)) * radius_step  # 约3圈螺旋
+
+            radian = math.radians(angle)
+            x = radius * math.cos(radian)
+            y = radius * math.sin(radian) * 0.75 - 60
+
+            # 创建标签
+            star = (
+                ui.label("✦")
+                .classes("quick-star-dark")
+                .style(f"""
+                    left: calc(50% + {x}px);
+                    top: calc(50% + {y}px);
+                """)
+            )
+
+            # 添加 tooltip
+            with star:
+                ui.tooltip(f"[{site_key}] {description}")
+
+            # 点击事件
+            star.on(
+                "click",
+                lambda e, q=f"帮我查询{site_key}有哪些命令": send_message(q),
+            )
+
+    # 主函数
+    def create_site_explorer():
+        """创建站点浏览器"""
+        sites_data = load_sites_data()
+        if not sites_data:
+            return  # 没有数据就不创建
+        create_spiral_layout(sites_data)
 
     with ui.column().classes(
         "w-full h-screen max-w-7xl mx-auto px-0 sm:px-2 py-1 gap-0 overflow-hidden"
@@ -346,6 +413,7 @@ def main():
                     ]
 
                     with ui.element("div").classes("suggestion-cloud"):
+                        create_site_explorer()
                         for text, question, x, y in suggestions:
                             star = (
                                 ui.label(text)
