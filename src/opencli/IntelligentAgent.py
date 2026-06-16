@@ -203,13 +203,14 @@ class IntelligentCLIAgent:
                 # 这里是一个特殊的处理，原因不明，可能是聊天模板的问题，可跳过此轮而不是直接抛出异常。
                 if "Failed to parse input" in str(e):
                     print(f"error : {str(e)[:100]}")
+                    if self.verbose:
+                        print(traceback.format_exc())
                     yield {
                         "type": "trace",
                         "stage": "异常",
                         "message": f"{str(e)[:60]} :: {content[:60]}",
                         "timing": 0,
                     }
-                    continue
                 else:
                     raise
 
