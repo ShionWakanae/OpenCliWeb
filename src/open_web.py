@@ -204,12 +204,12 @@ def main():
 
             # 添加 tooltip
             with star:
-                ui.tooltip(f"[{site_key}] {description}")
+                ui.tooltip(f"帮助：[{site_key}] {description}。")
 
             # 点击事件
             star.on(
                 "click",
-                lambda e, q=f"帮我查询{site_key}有哪些命令": send_message(q),
+                lambda e, q=f"帮我查询{site_key}有哪些命令": input_box.set_value(q),
             )
 
     # 主函数
@@ -428,7 +428,7 @@ def main():
 
                             star.on(
                                 "click",
-                                lambda e, q=question: send_message(q),
+                                lambda e, q=question: input_box.set_value(q),
                             )
 
                     ui.image("/static/images/logo.png").style(
