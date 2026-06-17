@@ -27,7 +27,9 @@ def get_error_message(e: Exception) -> str:
         except Exception:
             pass
 
-    return str(e)
+    if str(e).strip() != "":
+        return str(e)
+    return f"{e.__class__.__module__}.{e.__class__.__name__}"
 
 
 def create_agent(
@@ -210,13 +212,14 @@ class OpenCLIService:
 
         except Exception as e:
             print(traceback.format_exc())
+            error_message = get_error_message(e)
             yield {
                 "type": "trace",
                 "stage": "异常",
-                "message": str(e),
+                "message": f"003 :: {error_message}",
                 "timing": 0,
             }
-            error_message = get_error_message(e)
+
             yield {
                 "type": "token",
                 "text": f"📛错误：{error_message}\n",

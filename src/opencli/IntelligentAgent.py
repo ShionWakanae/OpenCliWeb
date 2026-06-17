@@ -202,7 +202,7 @@ class IntelligentCLIAgent:
                     yield {
                         "type": "trace",
                         "stage": "异常",
-                        "message": f"{str(e)[:60]} :: {content[:60]}",
+                        "message": f"001 :: {str(e)[:60]} :: {content[:60]}",
                         "timing": 0,
                     }
                 else:
@@ -225,7 +225,7 @@ class IntelligentCLIAgent:
                     yield {
                         "type": "trace",
                         "stage": "异常",
-                        "message": content[:100],
+                        "message": f"002 :: {content[:100]}",
                         "timing": 0,
                     }
                     yield {
