@@ -4,7 +4,6 @@ import yaml
 import shlex
 import traceback
 import re
-from datetime import date
 from textwrap import dedent
 from dataclasses import dataclass
 from typing import Any
@@ -568,25 +567,6 @@ class OpenCLITool:
                 "required": ["full_cmd"],
             },
             fn=cmd_exec,
-        )
-
-        # date
-        def today_date():
-            return date.today().strftime("%Y-%m-%d")
-
-        self.register(
-            name="today_date",
-            description=dedent("""\
-                获取当天日期
-
-                返回：
-                格式为 yyyy-mm-dd 的日期字符串
-            """),
-            schema={
-                "type": "object",
-                "properties": {},
-            },
-            fn=today_date,
         )
 
     # api

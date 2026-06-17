@@ -1,6 +1,7 @@
 import asyncio
 import json
 import traceback
+from datetime import date
 from typing import Optional
 from textwrap import dedent
 from openai import AsyncOpenAI
@@ -38,34 +39,19 @@ class IntelligentCLIAgent:
     ):
         """获取系统提示词"""
         return dedent(rf"""\
-            你是一个智能助手，能够使用工具来操作网站, 获取信息
-            使用 {settings.language} 回答用户问题
-
+            你是一个智能助手，能够使用工具来操作网站, 获取信息。
+            
             ## 可用网站列表[site list]：
-
             {self.opencli_tool.prompt}
 
             ## 可用工具：
-
-            - **today_date**: 获取当天日期
             - **site_help**: 列出单个网站的所有可用命令和参数
             - **cmd_exec**: 执行完整命令字符串
 
-            ## 日期工具规则：
-
-            1. 
-            如果用户输入了明确的日期，则不必调用 today_date()
-
-            2，
-            如果用户提到类似'今天'，'明天'等不确定的日期，则必须首先调用 today_date()
-            并计算出用户真实希望的日期字符串，供后续命令使用
-
-            3，
-            如果用户输入信息中没有日期内容，但发现在后续命令中需要日期，则调用 today_date()
-            并使用当天日期
+            ## 日期：
+            今天的日期：{date.today().strftime("%Y-%m-%d")}, 可用于查询或日期计算
 
             ## 网站查询步骤：
-            
             1.
             第一步: 确认网站(site)名称:
             根据用户输入, 从[site list]中找到最匹配的名称
@@ -94,7 +80,8 @@ class IntelligentCLIAgent:
             - 如果 cmd_exec() 返回:出错 or 超时 or 没有数据, 并且尝试次数已经达到3次: 立即停止工具调用并提示用户
 
             ## 输出格式
-            - 用友好的方式向用户展示结果
+            - 用便于阅读的方式向用户展示结果
+            - 使用语言`{settings.language}`回答用户
             - 不使用Latex符号, 例如:$\rightarrow$
             - 用Markdown格式展示链接(保留链接很重要)
             - 如果工具返回错误，解释可能的原因并给出建议
