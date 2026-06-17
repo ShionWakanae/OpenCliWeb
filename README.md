@@ -14,16 +14,17 @@
 本项目和直接使用OpenCLI命令行有什么区别？  
 
 1. 用LLM判断并考虑调用OpenCLI的顺序和逻辑。
-2. 用户只需要提出自己的问题或需求。
+2. 可以在WEBUI中查看调用多个命令的详细过程。
+3. 用户只需要提出自己的问题或需求。
+4. 提供友好的提示：所有可操作的sites以及帮助示例。
+5. 缓存sites列表及描述提高LLM查询成功率。
 
 本项目和用Agent通过skill调用openCLI有什么区别？
 
 1. 简化操作流程和数据结构，只能操作网站(site)类型。
 2. 用在线LLM可以省很多Token。
 3. 用本地LLM更容易Hold住，成功完成任务。
-4. 也许相当于自行车对比汽车: 下坡省力，上坡省油。
-
-
+4. 也许相当于自行车对比汽车: 下坡省力，上坡省油？
 
 ![](res/cat_typing.gif)
 
@@ -69,16 +70,37 @@ LANGUAGE=简体中文                            #人类语言的全程
 ```
 
 ## ℹ️（2）信息查询
+
+### 首次查询
+首次查询或OpenCLI支持的Sites发生变化时，会维护Sites列表及描述缓存。
+这个过程需要LLM通过解读指令来反推site的作用，速度稍慢，请耐心等待。
+
+日志类似：
+```powershell
+[2026-06-17 16:15:14.913] [Service] init...
+[2026-06-17 16:15:19.010] [SiteMetadata] Added: huodongxing  <4.10s>
+[2026-06-17 16:15:20.697] [SiteMetadata] Added: slock  <1.69s>
+```
+缓存位置：`.\data\sites_metadata.json`
+
+只会维护变动的内容，所以从第二次执行开始，速度就很快了。
+
 ### 命令行查询
-``` shell
+``` powershell
+.\venv\scripts\activate
 python .\src\open_cli.py '你的问题'          #比如：B站最热门的5条视频
 ```
 ### 浏览器查询
 1. 启动WebUI服务。
-``` shell
+``` powershell
 python .\src\open_web.py
 ```
-2. 打开浏览器，访问`http://127.0.0.1:7860/` 发送问题进行基于OpenCLI的网站查询。  
+2. 打开浏览器，访问`http://127.0.0.1:7860/` 
+   主界面通过星环方式，展示了多个使用示例，以及所有的site（每颗星星都是一个site）。
+
+![](res/webui_0.png)
+
+3. 发送问题进行基于OpenCLI的网站查询。  
 
 ![](res/webui.png)
 
