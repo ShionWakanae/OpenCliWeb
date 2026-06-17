@@ -127,6 +127,12 @@ class IntelligentCLIAgent:
             }
         for _ in range(MAX_TOOL):
             loop_count += 1
+            yield {
+                "type": "trace",
+                "stage": "轮次",
+                "message": f"({loop_count})",
+                "timing": 0,
+            }
             tool_count = 0
             stream = await self.client.chat.completions.create(
                 model=self.model,
@@ -216,6 +222,13 @@ class IntelligentCLIAgent:
 
             # finish
             if not tool_calls:
+                if content.strip() == "" and reasoning.strip() == "":
+                    yield {
+                        "type": "trace",
+                        "stage": "异常",
+                        "message": "没有工具或思考或输出，结果为空！",
+                        "timing": 0,
+                    }
                 if any(
                     keyword in content
                     for keyword in ["Failed to parse input", "Traceback", "APIError"]
