@@ -675,6 +675,14 @@ def main():
                         # token
                         if event["type"] == "token":
                             if not first_token:
+                                if len(accumulated_reasoning) > 0:
+                                    trace_message_content += accumulated_reasoning
+                                    accumulated_reasoning = ""
+                                    trace_message_ui.content = render_markdown_html(
+                                        trace_message_content
+                                    )
+                                    trace_message_ui.update()
+                                    auto_scroll_chat(client)
                                 log("Streaming...")
                                 first_token = True
                                 streaming_start = time.perf_counter()
@@ -690,7 +698,11 @@ def main():
                                 assistant_answer_spinner.set_visibility(True)
                             accumulated += event["text"]
                             # still need a len limit, for a very long answer without newline
-                            if "\n" in accumulated or len(accumulated) > 150:
+                            if (
+                                "\n" in accumulated
+                                or "。" in accumulated
+                                or len(accumulated) > 150
+                            ):
                                 assistant_message_content += accumulated
                                 accumulated = ""
                                 assistant_message.content = render_markdown_html(

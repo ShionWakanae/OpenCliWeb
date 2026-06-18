@@ -4,7 +4,6 @@ import yaml
 import shlex
 import traceback
 import re
-from textwrap import dedent
 from dataclasses import dataclass
 from typing import Any
 from collections import defaultdict
@@ -446,13 +445,13 @@ class OpenCLITool:
 
         self.register(
             name="site_help",
-            description=dedent("""\
-                输入：
-                网站名(site)
+            description="""
+输入：
+网站名(site)
 
-                返回：
-                该网站(site)的全部命令(cmd)和参数
-            """),
+返回：
+该网站(site)的全部命令(cmd)和参数
+""",
             schema={
                 "type": "object",
                 "properties": {"site": {"type": "string"}},
@@ -532,32 +531,34 @@ class OpenCLITool:
 
         self.register(
             name="cmd_exec",
-            description=dedent("""\
-                ## **full_cmd**
-                待执行的完整命令字符串(大小写敏感)
+            description=(
+                """
+## **full_cmd**
+待执行的完整命令字符串(大小写敏感)
 
-                完整命令字符串的组成: 
-                "网站名称 命令名称 positional参数1 positional参数2 ... --option参数1 值1 --option参数2 值2 ..."
+完整命令字符串的组成: 
+"网站名称 命令名称 positional参数1 positional参数2 ... --option参数1 值1 --option参数2 值2 ..."
 
-                格式如下:
-                site cmd positional(s) --option(s) option_value
-                
-                控制条数:
-                需要控制返回条数时, 只要 options 中包含 limit参数 ，则必须添加 --limit
+格式如下:
+site cmd positional(s) --option(s) option_value
 
-                不要输入：
-                "full_cmd"字符串本身
-                opencli
-                cmd
-                -f 格式
-                系统会自动补充
+控制条数:
+需要控制返回条数时, 只要 options 中包含 limit参数 ，则必须添加 --limit
 
-                ## **result_limit**
-                如需限制条数则必须传入 result_limit 参数, 可与 --limit 同时使用
+不要输入：
+"full_cmd"字符串本身
+opencli
+cmd
+-f 格式
+系统会自动补充
 
-                例如：
-                result_limit = 5
-            """),
+## **result_limit**
+如需限制条数则必须传入 result_limit 参数, 可与 --limit 同时使用
+
+例如：
+result_limit = 5
+"""
+            ),
             schema={
                 "type": "object",
                 "properties": {

@@ -3,7 +3,6 @@ import json
 import traceback
 from datetime import date
 from typing import Optional
-from textwrap import dedent
 from openai import AsyncOpenAI
 from opencli.OpenCLITool import OpenCLITool
 from utils.logger import logger
@@ -38,54 +37,75 @@ class IntelligentCLIAgent:
         self,
     ):
         """获取系统提示词"""
-        return dedent(rf"""\
-            你是一个智能助手，能够使用工具来操作网站, 获取信息。
-            
-            ## 可用网站列表[site list]：
-            {self.opencli_tool.prompt}
+        today = date.today().strftime("%Y-%m-%d")
+        return f"""
+你是一个智能助手，能够使用工具来操作网站, 获取信息。
 
-            ## 可用工具：
-            - **site_help**: 列出单个网站的所有可用命令和参数
-            - **cmd_exec**: 执行完整命令字符串
+## 可用网站列表[site list]：
+{self.opencli_tool.prompt}
 
-            ## 日期：
-            今天的日期：{date.today().strftime("%Y-%m-%d")}, 可用于查询或日期计算
+## 可用工具：
+- **site_help**: 列出单个网站的所有可用命令和参数
+- **cmd_exec**: 执行完整命令字符串
 
-            ## 网站查询步骤：
-            1.
-            第一步: 确认网站(site)名称:
-            根据用户输入, 从[site list]中找到最匹配的名称
-            你只能操作[site list]中的网站(site)
+## 日期：
+今天的日期：{today}, 可用于查询或日期计算
 
-            2.
-            第二步: 取得网站支持的命令列表:
-            执行 site_help(site)
+## 网站查询步骤：
+1.
+第一步: 确认网站(site)名称:
+根据用户输入, 从[site list]中找到最匹配的名称
+你只能操作[site list]中的网站(site)
 
-            3.
-            第三步: 执行命令:
-            拼接出完整命令字符串后：
-            执行 cmd_exec(...)
+2.
+第二步: 取得网站支持的命令列表:
+执行 site_help(site)
 
-            ## 命令参数规则：
-            不要拼 opencli
-            不要拼 cmd
-            不要加 -f 某格式
+3.
+第三步: 执行命令:
+拼接出完整命令字符串后：
+执行 cmd_exec(...)
 
-            ## 禁止：
-            - 禁止调用工具获取不必要的数据: 仅尝试获取必要的数据
-            - 禁止编造数据: 仅使用调用工具取得的真实数据
-            - 禁止猜测指令参数: 必须先调用 site_help() 确认支持的命令和参数
-            - 禁止重复调用 site_help()
-            - 如果 cmd_exec() 返回正常数据: 禁止用相同的参数反复调用
-            - 如果 cmd_exec() 返回:出错 or 超时 or 没有数据, 并且尝试次数已经达到3次: 立即停止工具调用并提示用户
+## 命令参数规则：
+不要拼 opencli
+不要拼 cmd
+不要加 -f 某格式
 
-            ## 输出格式
-            - 用便于阅读的方式向用户展示结果
-            - 使用语言`{settings.language}`回答用户
-            - 不使用Latex符号, 例如:$\rightarrow$
-            - 用Markdown格式展示链接(保留链接很重要)
-            - 如果工具返回错误，解释可能的原因并给出建议
-            """)
+## 禁止：
+- 禁止调用工具获取不必要的数据: 仅尝试获取必要的数据
+- 禁止编造数据: 仅使用调用工具取得的真实数据
+- 禁止猜测指令参数: 必须先调用 site_help() 确认支持的命令和参数
+- 禁止重复调用 site_help()
+- 如果 cmd_exec() 返回正常数据: 禁止用相同的参数反复调用
+- 如果 cmd_exec() 返回:出错 or 超时 or 没有数据, 并且尝试次数已经达到3次: 立即停止工具调用并提示用户
+
+## 输出格式
+- 用便于阅读的方式向用户展示结果
+- 使用语言`{settings.language}`回答用户
+- 不使用Latex符号, 例如:$\\rightarrow$
+- 用Markdown格式展示链接(保留链接很重要)
+- 如果工具返回错误，解释可能的原因并给出建议
+"""
+
+    #     # prompt
+    #     def _get_score_prompt(
+    #         self,
+    #         history,
+    #         content,
+    #     ):
+    #         return f"""
+    # 请审查以下推理过程：
+
+    # 推理过程：
+    # {history}
+
+    # 最终结果：
+    # {content}
+
+    # 你需要找出之前推理中有没有问题，包括可能出现的逻辑漏洞，条件遗漏，数据错误，虚假信息等。
+    # 1. 有问题则回答 "核验不通过: {{问题的简要描述}}。"
+    # 2. 无问题则给前面推理打分（100分制）并回答 "核验通过: {{你打的分数}}分。"
+    # """
 
     # internal
     async def _run(
@@ -103,6 +123,8 @@ class IntelligentCLIAgent:
             },
         ]
         is_answering = False
+        all_ok = False
+        content = ""
         MAX_TOOL = 99
         loop_count = 0
         extra_body = {}
@@ -237,7 +259,8 @@ class IntelligentCLIAgent:
                         "type": "done",
                         "text": content,
                     }
-                return
+                all_ok = True
+                break
 
             # assistant（只追加一次）
             messages.append(
@@ -324,13 +347,73 @@ class IntelligentCLIAgent:
                     }
                 )
 
-        print("tool loop overflow !!!")
-        yield {
-            "type": "trace",
-            "stage": "异常",
-            "message": "工具调用循环溢出！在最终结果生成前，工具调用次数过多。",
-            "timing": 0,
-        }
+        if not all_ok:
+            print("tool loop overflow !!!")
+            yield {
+                "type": "trace",
+                "stage": "异常",
+                "message": "工具调用循环溢出！在最终结果生成前，工具调用次数过多。",
+                "timing": 0,
+            }
+        #     return
+
+        # yield {
+        #     "type": "trace",
+        #     "stage": "核验",
+        #     "message": "检查最终答案的正确性……",
+        #     "timing": 0,
+        # }
+
+        # messages.pop(0)
+        # verify_messages = [
+        #     {"role": "system", "content": "你是一个严格的审查者。"},
+        #     {
+        #         "role": "user",
+        #         "content": self._get_score_prompt(messages, content),
+        #     },
+        # ]
+        # # print(verify_messages)
+        # stream = await self.client.chat.completions.create(
+        #     model=self.model,
+        #     messages=verify_messages,
+        #     temperature=0.1,
+        #     stream=True,
+        #     stream_options={"include_usage": True},
+        #     max_tokens=8192,
+        # )
+        # async for chunk in stream:
+        #     # usage chunk
+        #     if chunk.usage:
+        #         yield {
+        #             "type": "usage",
+        #             "usage": chunk.usage.model_dump(),
+        #             "model": chunk.model.replace(".gguf", ""),
+        #         }
+        #         continue
+
+        #     if not chunk.choices:
+        #         continue
+
+        #     delta = chunk.choices[0].delta
+
+        #     # tmp_reasoning = ""
+        #     # if hasattr(delta, "reasoning_content") and delta.reasoning_content:
+        #     #     tmp_reasoning = delta.reasoning_content
+        #     # if hasattr(delta, "reasoning") and delta.reasoning:
+        #     #     tmp_reasoning = delta.reasoning
+
+        #     # if tmp_reasoning:
+        #     #     yield {
+        #     #         "type": "reasoning",
+        #     #         "text": tmp_reasoning,
+        #     #     }
+        #     # 普通文本
+        #     if hasattr(delta, "content") and delta.content:
+        #         # print(f"token: {delta.content}")
+        #         yield {
+        #             "type": "token",
+        #             "text": delta.content,
+        #         }
 
     # public
     def chat(self, message):

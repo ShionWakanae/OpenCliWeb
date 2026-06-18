@@ -1,5 +1,4 @@
 import json
-from textwrap import dedent
 from openai import AsyncOpenAI
 from utils.settings import settings
 
@@ -14,24 +13,22 @@ class SiteAgent:
         self.model = settings.llm_model
 
     def _get_system_prompt(self):
-        return dedent(
-            """
-            请根据网站支持的commands信息，
-            用一句中文概括该网站用途。
+        return """
+请根据网站支持的commands信息，
+用一句中文概括该网站用途。
 
-            要求：
-            1. 不超过10个字
-            2. 不允许猜测不存在的功能
-            3. 不允许输出解释
-            4. 返回JSON
+要求：
+1. 不超过10个字
+2. 不允许猜测不存在的功能
+3. 不允许输出解释
+4. 返回JSON
 
-            格式：
+格式：
 
-            {
-              "desc": "B站视频平台"
-            }
-            """
-        )
+{
+    "desc": "B站视频平台"
+}
+"""
 
     async def generate_site_description(
         self,

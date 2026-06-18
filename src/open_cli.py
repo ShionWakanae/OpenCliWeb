@@ -25,6 +25,12 @@ async def main(question, think=False, verbose=False):
         if event["type"] == "token":
             chunk = event["text"]
             if not first_token:
+                if len(accumulated_reasoning) > 0:
+                    print(
+                        f"[dark_magenta]{accumulated_reasoning}[/]", end="", flush=True
+                    )
+                    last_print_char = accumulated_reasoning[-1]
+                    accumulated_reasoning = ""
                 log(
                     "Streaming...",
                     need_newline_first=last_print_char != "\n",
@@ -58,8 +64,23 @@ async def main(question, think=False, verbose=False):
                 model_name = event["model"]
             prompt_tokens += int(event["usage"]["prompt_tokens"])
             completion_tokens += int(event["usage"]["completion_tokens"])
-
+            if len(accumulated) > 0:
+                print(f"[bright_magenta]{accumulated}[/]", end="", flush=True)
+                last_print_char = accumulated[-1]
+                accumulated = ""
+            if len(accumulated_reasoning) > 0:
+                print(f"[dark_magenta]{accumulated_reasoning}[/]", end="", flush=True)
+                last_print_char = accumulated_reasoning[-1]
+                accumulated_reasoning = ""
         elif event["type"] == "trace":
+            if len(accumulated) > 0:
+                print(f"[bright_magenta]{accumulated}[/]", end="", flush=True)
+                last_print_char = accumulated[-1]
+                accumulated = ""
+            if len(accumulated_reasoning) > 0:
+                print(f"[dark_magenta]{accumulated_reasoning}[/]", end="", flush=True)
+                last_print_char = accumulated_reasoning[-1]
+                accumulated_reasoning = ""
             log(
                 msg=f"[{event['stage']}] {event['message']}",
                 need_newline_first=last_print_char != "\n",
