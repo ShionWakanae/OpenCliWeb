@@ -674,15 +674,15 @@ def main():
 
                         # token
                         if event["type"] == "token":
+                            if len(accumulated_reasoning) > 0:
+                                trace_message_content += accumulated_reasoning
+                                accumulated_reasoning = ""
+                                trace_message_ui.content = render_markdown_html(
+                                    trace_message_content
+                                )
+                                trace_message_ui.update()
+                                auto_scroll_chat(client)
                             if not first_token:
-                                if len(accumulated_reasoning) > 0:
-                                    trace_message_content += accumulated_reasoning
-                                    accumulated_reasoning = ""
-                                    trace_message_ui.content = render_markdown_html(
-                                        trace_message_content
-                                    )
-                                    trace_message_ui.update()
-                                    auto_scroll_chat(client)
                                 log("Streaming...")
                                 first_token = True
                                 streaming_start = time.perf_counter()
@@ -712,6 +712,14 @@ def main():
                                 auto_scroll_chat(client)
 
                         elif event["type"] == "reasoning":
+                            if len(accumulated) > 0:
+                                assistant_message_content += accumulated
+                                accumulated = ""
+                                assistant_message.content = render_markdown_html(
+                                    assistant_message_content
+                                )
+                                assistant_message.update()
+                                auto_scroll_chat(client)
                             if not first_reasoning:
                                 log("Reasoning...")
                                 first_reasoning = True
