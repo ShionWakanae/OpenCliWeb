@@ -60,6 +60,7 @@ class IntelligentCLIAgent:
 2.
 第二步: 取得网站支持的命令列表:
 执行 site_help(site)
+你只能执行返回的命令列表中的命令
 
 3.
 第三步: 执行命令:
