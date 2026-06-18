@@ -24,13 +24,11 @@ async def main(question, think=False, verbose=False):
     async for event in service.stream_answer(question, think=think, verbose=verbose):
         if event["type"] == "token":
             chunk = event["text"]
+            if len(accumulated_reasoning) > 0:
+                print(f"[dark_magenta]{accumulated_reasoning}[/]", end="", flush=True)
+                last_print_char = accumulated_reasoning[-1]
+                accumulated_reasoning = ""
             if not first_token:
-                if len(accumulated_reasoning) > 0:
-                    print(
-                        f"[dark_magenta]{accumulated_reasoning}[/]", end="", flush=True
-                    )
-                    last_print_char = accumulated_reasoning[-1]
-                    accumulated_reasoning = ""
                 log(
                     "Streaming...",
                     need_newline_first=last_print_char != "\n",
@@ -45,9 +43,16 @@ async def main(question, think=False, verbose=False):
                 accumulated = ""
 
         elif event["type"] == "reasoning":
+            if len(accumulated) > 0:
+                print(f"[bright_magenta]{accumulated}[/]", end="", flush=True)
+                last_print_char = accumulated[-1]
+                accumulated = ""
             chunk = event["text"]
             if not first_reasoning:
-                log("Reasoning...")
+                log(
+                    "Reasoning...",
+                    need_newline_first=last_print_char != "\n",
+                )
                 first_reasoning = True
             accumulated_reasoning += chunk
             if "\n" in accumulated_reasoning or len(accumulated_reasoning) > 23:
