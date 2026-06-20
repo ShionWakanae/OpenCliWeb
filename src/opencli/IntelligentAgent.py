@@ -1,4 +1,5 @@
 import asyncio
+import os
 import json
 import traceback
 from typing import Optional
@@ -175,7 +176,7 @@ class IntelligentCLIAgent:
                         yield {
                             "type": "usage",
                             "usage": chunk.usage.model_dump(),
-                            "model": chunk.model.replace(".gguf", ""),
+                            "model": os.path.basename(chunk.model).replace(".gguf", ""),
                         }
                         continue
 
