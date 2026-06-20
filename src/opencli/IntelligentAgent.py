@@ -1,7 +1,6 @@
 import asyncio
 import json
 import traceback
-from datetime import date
 from typing import Optional
 from openai import AsyncOpenAI
 from opencli.OpenCLITool import OpenCLITool
@@ -37,7 +36,6 @@ class IntelligentCLIAgent:
         self,
     ):
         """获取系统提示词"""
-        today = date.today().strftime("%Y-%m-%d")
         return f"""
 你是一个智能助手，能够使用工具来操作网站, 获取信息。
 
@@ -45,11 +43,21 @@ class IntelligentCLIAgent:
 {self.opencli_tool.prompt}
 
 ## 可用工具：
+- **today_date**: 获取当天日期
 - **site_help**: 列出单个网站的所有可用命令和参数
 - **cmd_exec**: 执行完整命令字符串
 
-## 日期：
-今天的日期：{today}, 可用于查询或日期计算
+## 日期工具规则：
+1. 
+如果用户输入了明确的日期，则不必调用 today_date()
+
+2，
+如果用户提到类似'今天'，'明天'等不确定的日期，则必须首先调用 today_date()
+并计算出用户真实希望的日期字符串，供后续命令使用
+
+3，
+如果用户输入信息中没有日期内容，但发现在后续命令中需要日期，则调用 today_date()
+并使用当天日期
 
 ## 网站查询步骤：
 1.
@@ -216,16 +224,28 @@ class IntelligentCLIAgent:
                                     tool_calls[idx]["name"] += tc.function.name
                                 if tc.function.arguments:
                                     tool_calls[idx]["args"] += tc.function.arguments
+
+                    if (
+                        not hasattr(delta, "reasoning_content")
+                        and not hasattr(delta, "reasoning")
+                        and not hasattr(delta, "content")
+                        and not delta.tool_calls
+                    ):
+                        print("unknown delta:")
+                        print(delta)
+
             except Exception as e:
                 # 这里是一个特殊的处理，原因不明，可能是聊天模板的问题，可跳过此轮而不是直接抛出异常。
-                if "Failed to parse input" in str(e):
+                if "Failed to parse input" in str(
+                    e
+                ) or "does not match the expected peg-native format" in str(e):
                     print(f"error : {str(e)[:100]}")
                     if self.verbose:
                         print(traceback.format_exc())
                     yield {
                         "type": "trace",
                         "stage": "异常",
-                        "message": f"001 :: {str(e)[:60]} :: {content[:60]}",
+                        "message": f"001 :: {str(e)[:100]} :: {content[:-60]}",
                         "timing": 0,
                     }
                 else:
@@ -248,7 +268,7 @@ class IntelligentCLIAgent:
                     yield {
                         "type": "trace",
                         "stage": "异常",
-                        "message": f"002 :: {content[:100]}",
+                        "message": "002 :: Error in content",
                         "timing": 0,
                     }
                     yield {
