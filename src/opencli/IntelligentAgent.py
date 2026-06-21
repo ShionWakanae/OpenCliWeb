@@ -2,6 +2,8 @@ import asyncio
 import os
 import json
 import traceback
+from datetime import date
+import calendar
 from typing import Optional
 from openai import AsyncOpenAI
 from opencli.OpenCLITool import OpenCLITool
@@ -37,6 +39,9 @@ class IntelligentCLIAgent:
         self,
     ):
         """获取系统提示词"""
+        today = date.today()
+        today_date = today.strftime("%Y-%m-%d")
+        today_weekday = calendar.day_name[today.weekday()]  # 输出英文：Saturday
         return f"""
 你是一个智能助手，能够使用工具来操作网站, 获取信息。
 
@@ -44,17 +49,15 @@ class IntelligentCLIAgent:
 {self.opencli_tool.prompt}
 
 ## 可用工具：
-- **today_date**: 获取当天日期
 - **site_help**: 列出单个网站的所有可用命令和参数
 - **cmd_exec**: 执行完整命令字符串
 
-## 日期工具规则：
+## 日期规则：
 1. 
-如果用户输入了明确的日期，则不必调用 today_date()
+如果用户输入了明确的日期，则直接使用该日期
 
 2，
-如果用户提到类似'今天'，'明天'等不确定的日期，则必须首先调用 today_date()
-并计算出用户真实希望的日期字符串，供后续命令使用
+如果用户提到类似'今天'，'明天'等不确定的日期，则使用当前的日期"{today_date}"+"{today_weekday}"，计算出用户真实希望的日期
 
 3，
 如果用户输入信息中没有日期内容，但发现在后续命令中需要日期，则调用 today_date()
@@ -92,7 +95,6 @@ class IntelligentCLIAgent:
 ## 输出格式
 - 用便于阅读的方式向用户展示结果
 - 使用语言`{settings.language}`回答用户
-- 不使用Latex符号, 例如:$\\rightarrow$
 - 用Markdown格式展示链接(保留链接很重要)
 - 如果工具返回错误，解释可能的原因并给出建议
 """

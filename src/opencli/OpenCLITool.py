@@ -4,7 +4,6 @@ import yaml
 import shlex
 import traceback
 import re
-from datetime import date
 from dataclasses import dataclass
 from typing import Any
 from collections import defaultdict
@@ -571,26 +570,26 @@ result_limit = 5
             fn=cmd_exec,
         )
 
-        # date
-        def today_date():
-            return date.today().strftime("%Y-%m-%d")
+    #         # date
+    #         def today_date():
+    #             return date.today().strftime("%Y-%m-%d")
 
-        self.register(
-            name="today_date",
-            description=(
-                """
-获取当天日期
+    #         self.register(
+    #             name="today_date",
+    #             description=(
+    #                 """
+    # 获取当天日期
 
-返回：
-格式为 yyyy-mm-dd 的日期字符串
-"""
-            ),
-            schema={
-                "type": "object",
-                "properties": {},
-            },
-            fn=today_date,
-        )
+    # 返回：
+    # 格式为 yyyy-mm-dd 的日期字符串
+    # """
+    #             ),
+    #             schema={
+    #                 "type": "object",
+    #                 "properties": {},
+    #             },
+    #             fn=today_date,
+    #         )
 
     # api
     def get_tools(self):
