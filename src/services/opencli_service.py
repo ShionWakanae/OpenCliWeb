@@ -168,7 +168,8 @@ class OpenCLIService:
         first_token = False
         answer_start = total_start
         got_answer = False
-
+        think_start = False
+        think_end = False
         yield {
             "type": "trace",
             "stage": "开始",
@@ -179,6 +180,16 @@ class OpenCLIService:
             async for event in agent.astream(question):
                 if event["type"] == "token":
                     if event["text"]:
+                        # handle <think></think> block as reasoning
+                        if not think_start and "<think>" in event["text"].lower():
+                            think_start = True
+                        if think_start and not think_end:
+                            event["type"] = "reasoning"
+                            yield event
+                            if "</think>" in event["text"].lower():
+                                think_end = True
+                            continue
+
                         got_answer = True
                         if not first_token:
                             first_token = True
