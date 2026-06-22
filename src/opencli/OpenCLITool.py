@@ -243,7 +243,7 @@ class OpenCLITool:
                 stdout="",
                 stderr="",
                 data=None,
-                error="ok: false\nerror: duplicated cmd execution attempt, please check the previous results.",
+                error="ok: false\nerror: duplicated cmd execution, please check previous result.",
                 data_format=format_output,
             )
 
