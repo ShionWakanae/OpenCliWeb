@@ -533,13 +533,15 @@ class OpenCLITool:
             name="cmd_exec",
             description=(
                 """
-## **full_cmd**
+输入：
+
+# 参数1: **full_cmd**
 待执行的完整命令字符串(大小写敏感)
 
-完整命令字符串的组成: 
+### 参数1组成: 
 "网站名称 命令名称 positional参数1 positional参数2 ... --option参数1 值1 --option参数2 值2 ..."
 
-格式如下:
+### 参数1格式:
 site cmd positional(s) --option(s) option_value
 
 控制条数:
@@ -552,7 +554,7 @@ cmd
 -f 格式
 系统会自动补充
 
-## **result_limit**
+# 参数2: **result_limit**
 如需限制条数则必须传入 result_limit 参数, 可与 --limit 同时使用
 
 例如：
