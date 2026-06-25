@@ -178,6 +178,7 @@ class OpenCLIService:
             "message": "收到用户指令并开始处理……",
             "timing": 0,
         }
+        debug_events = None
         try:
             async for event in agent.astream(question):
                 if event["type"] == "token":
@@ -200,22 +201,25 @@ class OpenCLIService:
                     # 工具调用，重置回答开始时间，适用于某些把推理过程输出到普通token中的模型。
                     answer_start = time.perf_counter()
                     got_answer = False
+                elif event["type"] == "debug":
+                    debug_events = event
                 yield event
 
             # no token, no answer
-            if answer_start == total_start:
-                answer_start = time.perf_counter()
+            if not debug_events:
+                if answer_start == total_start:
+                    answer_start = time.perf_counter()
 
-            query_ms = round((answer_start - total_start) * 1000, 2)
-            llm_ms = round((time.perf_counter() - answer_start) * 1000, 2)
-            total_ms = round((time.perf_counter() - total_start) * 1000, 2)
+                query_ms = round((answer_start - total_start) * 1000, 2)
+                llm_ms = round((time.perf_counter() - answer_start) * 1000, 2)
+                total_ms = round((time.perf_counter() - total_start) * 1000, 2)
 
-            yield {
-                "type": "debug",
-                "query_ms": query_ms,
-                "llm_ms": llm_ms,
-                "total_ms": total_ms,
-            }
+                yield {
+                    "type": "debug",
+                    "query_ms": query_ms,
+                    "llm_ms": llm_ms,
+                    "total_ms": total_ms,
+                }
 
             yield {
                 "type": "status",

@@ -20,7 +20,6 @@ async def main(question, think=False, verbose=False):
     prompt_tokens = 0
     completion_tokens = 0
     last_print_char = "\n"
-    streaming_start = time.perf_counter()
     async for event in service.stream_answer(question, think=think, verbose=verbose):
         if event["type"] == "token":
             chunk = event["text"]
@@ -34,7 +33,6 @@ async def main(question, think=False, verbose=False):
                     need_newline_first=last_print_char != "\n",
                 )
                 first_token = True
-                streaming_start = time.perf_counter()
             accumulated += chunk
             # 遇到换行，或超过某长度个字符时输出
             if "\n" in accumulated or len(accumulated) > 23:
@@ -93,7 +91,6 @@ async def main(question, think=False, verbose=False):
             last_print_char = "\n"
 
         elif event["type"] == "tool":
-            streaming_start = time.perf_counter()
             tool_name = event.get("tool_name")
             kwargs = event.get("kwargs")
             stage = event.get("stage")
@@ -130,10 +127,7 @@ async def main(question, think=False, verbose=False):
         print(f"[bold bright_magenta]{accumulated}[/]", flush=True)
         print()
 
-    streaming_s = round(
-        (time.perf_counter() - streaming_start),
-        2,
-    )
+    streaming_s = round(timing.get("llm_ms", 0) / 1000, 2)
     print()
     if got_answer:
         log("Answer completed")
@@ -145,7 +139,7 @@ async def main(question, think=False, verbose=False):
     )
     tps = 0 if streaming_s == 0 else round(int(completion_tokens) / streaming_s, 2)
     log(
-        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens} <[bold bright_green]{model_name}[/]>"
+        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens}, <[bold bright_green]{model_name}[/]>"
         + f" <{tps} tokens/s>",
         False,
     )

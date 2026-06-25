@@ -667,7 +667,6 @@ def main():
 
                     first_token = False
                     first_reasoning = False
-                    streaming_start = time.perf_counter()
                     async for event in service.stream_answer(message):
                         if event is None:
                             break
@@ -685,7 +684,6 @@ def main():
                             if not first_token:
                                 log("Streaming...")
                                 first_token = True
-                                streaming_start = time.perf_counter()
                             if (
                                 assistant_stage_spinner
                                 and assistant_stage_spinner.visible
@@ -768,7 +766,6 @@ def main():
                             auto_scroll_chat(client)
 
                         elif event["type"] == "tool":
-                            streaming_start = time.perf_counter()
                             if (
                                 assistant_stage_spinner
                                 and not assistant_stage_spinner.visible
@@ -854,10 +851,7 @@ def main():
                     trace_message_ui.update()
                     auto_scroll_chat(client)
 
-                    streaming_s = round(
-                        (time.perf_counter() - streaming_start),
-                        2,
-                    )
+                    streaming_s = round(timing.get("llm_ms", 0) / 1000, 2)
                     if got_answer:
                         log("Answer completed")
                     else:
@@ -872,7 +866,7 @@ def main():
                         else round(int(completion_tokens) / streaming_s, 2)
                     )
                     log(
-                        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens} <[bold bright_green]{model_name}[/]>"
+                        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens}, <[bold bright_green]{model_name}[/]>"
                         + f" <{tps} tokens/s>",
                         False,
                     )

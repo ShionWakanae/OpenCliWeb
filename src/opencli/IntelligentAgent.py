@@ -125,6 +125,7 @@ class IntelligentCLIAgent:
         self,
         message,
     ):
+        total_start = time.perf_counter()
         messages = [
             {
                 "role": "system",
@@ -141,6 +142,8 @@ class IntelligentCLIAgent:
         MAX_TOOL = 99
         loop_count = 0
         extra_body = {}
+        tool_stage_len = 0
+        pp_stage_len = 0
         if not self.think:
             extra_body = {
                 "chat_template_kwargs": {"enable_thinking": False},
@@ -157,6 +160,8 @@ class IntelligentCLIAgent:
                     "timing": 0,
                 }
             tool_count = 0
+            pp_start = time.perf_counter()
+            first_token = False
             stream = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
@@ -174,6 +179,9 @@ class IntelligentCLIAgent:
             tool_calls = {}
             try:
                 async for chunk in stream:
+                    if not first_token:
+                        first_token = True
+                        pp_stage_len += time.perf_counter() - pp_start
                     # usage chunk
                     if chunk.usage:
                         yield {
@@ -237,7 +245,9 @@ class IntelligentCLIAgent:
                     ):
                         print("unknown delta:")
                         print(delta)
-
+                if not first_token:
+                    first_token = True
+                    pp_stage_len += time.perf_counter() - pp_start
             except Exception as e:
                 # 这里是一个特殊的处理，原因不明，可能是聊天模板的问题，可跳过此轮而不是直接抛出异常。
                 if "Failed to parse input" in str(
@@ -308,6 +318,7 @@ class IntelligentCLIAgent:
             )
 
             # tool
+            tool_start = time.perf_counter()
             for tc in tool_calls.values():
                 tool_count += 1
                 name = tc["name"]
@@ -371,6 +382,19 @@ class IntelligentCLIAgent:
                         "content": text,
                     }
                 )
+            tool_stage_len += time.perf_counter() - tool_start
+
+        total_end = time.perf_counter()
+        query_ms = round(tool_stage_len * 1000, 2)
+        pp_ms = round(pp_stage_len * 1000, 2)
+        total_ms = round((total_end - total_start) * 1000, 2)
+        llm_ms = round(total_ms - query_ms - pp_ms, 2)
+        yield {
+            "type": "debug",
+            "query_ms": query_ms,
+            "llm_ms": llm_ms,
+            "total_ms": total_ms,
+        }
 
         if not all_ok:
             print("tool loop overflow !!!")
