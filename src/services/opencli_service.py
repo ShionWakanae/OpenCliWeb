@@ -83,9 +83,11 @@ class OpenCLIService:
         else:
             log(f"[Service] opencli version: {r.stdout.strip()}")
 
+        # 记录是否连接profile
+        check_profile_connect = False
         while True:
             # opencli doctor
-            r = self._cli_tool._execute_opencli_command("doctor")
+            r = self._cli_tool._execute_any_command("opencli doctor")
             if not r.success:
                 log(r.error, False)
                 log(
@@ -103,8 +105,6 @@ class OpenCLIService:
                     "Connectivity": "[OK] Connectivity: connected" in output,
                 }
 
-                # 记录检查结果
-                check_profile_connect = False
                 all_ok = True
                 for component, status in checks.items():
                     if status:
@@ -137,13 +137,14 @@ class OpenCLIService:
                     else:
                         log(r.stdout.strip())
 
-            # 如果有任何检查失败，则退出
-            if not all_ok:
-                log("[Service] opencli doctor validation failed", False)
-                print(output)
-                exit(1)
+        # 如果有任何检查失败，则退出
+        if not all_ok:
+            log("[Service] opencli doctor validation failed", False)
+            print(output)
+            print()
+            exit(1)
 
-            log("[Service] opencli doctor passed")
+        log("[Service] opencli doctor passed")
 
     async def stream_answer(
         self,
