@@ -282,6 +282,17 @@ class OpenCLITool:
                 )
 
             if result.returncode != 0:
+                if (
+                    "opencli 12306" in full_cmd
+                    and "queryByTrainNo returned non-JSON body" in result.stderr
+                ):
+                    return CommandResult(
+                        success=False,
+                        command=full_cmd,
+                        stderr=result.stderr,
+                        error="未查询到结果, 请检查TrainNo是否正确!",
+                    )
+
                 return CommandResult(
                     success=False,
                     command=full_cmd,
