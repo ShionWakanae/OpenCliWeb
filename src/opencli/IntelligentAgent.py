@@ -3,6 +3,7 @@ import os
 import json
 import traceback
 from datetime import date
+import time
 import calendar
 from typing import Optional
 from openai import AsyncOpenAI
@@ -41,6 +42,7 @@ class IntelligentCLIAgent:
         """获取系统提示词"""
         today = date.today()
         today_date = today.strftime("%Y-%m-%d")
+        current_time = time.strftime("%H:%M:%S")
         today_weekday = calendar.day_name[today.weekday()]  # 输出英文：Saturday
         return f"""
 你是一个智能助手，能够使用工具来操作网站, 获取信息。
@@ -57,9 +59,9 @@ class IntelligentCLIAgent:
 如果用户输入了明确的日期，则直接使用该日期
 
 2，
-如果用户提到类似'今天'，'明天'等不确定的日期，则使用当前的日期"{today_date}"+"{today_weekday}"，计算出用户真实希望的日期
-如果用户输入信息中没有日期内容，但发现在后续命令中需要日期，则使用当前的日期
-注意: 此处的当前日期是实时获取的日期，是真实的日期，不是举例。
+如果用户提到类似'今天'，'明天'等不确定的日期，则使用当前日期计算出用户指定的日期
+如果用户输入信息中没有日期内容，但发现在后续命令中需要日期，则使用当前日期
+现在是: {today_date} {today_weekday} {current_time} , 这是实时获取的日期时间，是真实的，不是举例。
 
 ## 网站查询步骤：
 1.
