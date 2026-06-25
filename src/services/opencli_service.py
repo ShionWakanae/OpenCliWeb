@@ -83,28 +83,28 @@ class OpenCLIService:
         else:
             log(f"[Service] opencli version: {r.stdout.strip()}")
 
-        # opencli doctor
-        r = self._cli_tool._execute_opencli_command("doctor")
-        if not r.success:
-            log(r.error, False)
-            log(
-                "[Service] opencli doctor failed, please check!",
-                False,
-            )
-            exit(1)
-        else:
-            # 这里应该检查opencli doctor返回的：1)Daemon, 2)Extension, 3)Connectivity
-            output = r.stdout.strip()
-            # 需要检查的三个关键部分
-            checks = {
-                "Daemon": "[OK] Daemon: running" in output,
-                "Extension": "[OK] Extension: connected" in output,
-                "Connectivity": "[OK] Connectivity: connected" in output,
-            }
+        while True:
+            # opencli doctor
+            r = self._cli_tool._execute_opencli_command("doctor")
+            if not r.success:
+                log(r.error, False)
+                log(
+                    "[Service] opencli doctor failed, please check!",
+                    False,
+                )
+                exit(1)
+            else:
+                # 这里应该检查opencli doctor返回的：1)Daemon, 2)Extension, 3)Connectivity
+                output = r.stdout.strip()
+                # 需要检查的三个关键部分
+                checks = {
+                    "Daemon": "[OK] Daemon: running" in output,
+                    "Extension": "[OK] Extension: connected" in output,
+                    "Connectivity": "[OK] Connectivity: connected" in output,
+                }
 
-            # 记录检查结果
-            check_profile_connect = False
-            while True:
+                # 记录检查结果
+                check_profile_connect = False
                 all_ok = True
                 for component, status in checks.items():
                     if status:
@@ -133,6 +133,7 @@ class OpenCLIService:
                             "[Service] opencli profile use failed, please check!",
                             False,
                         )
+                        break
                     else:
                         log(r.stdout.strip())
 
