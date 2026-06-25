@@ -1,6 +1,5 @@
 import asyncio
 import argparse
-import time
 from rich import print
 from utils.charstrings import display_width, truncate_by_width_approx
 from services.opencli_service import service

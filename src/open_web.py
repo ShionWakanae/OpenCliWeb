@@ -6,7 +6,6 @@ import math
 from pathlib import Path
 from nicegui import ui, app, context, background_tasks
 from rich import print
-import time
 from services.opencli_service import service
 from utils.logger import logger
 from utils.settings import settings, version_num
