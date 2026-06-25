@@ -290,7 +290,7 @@ class OpenCLITool:
                         success=False,
                         command=full_cmd,
                         stderr=result.stderr,
-                        error="未查询到结果, 请检查TrainNo是否正确!",
+                        error="ok: false\nerror: 未查询到结果, 请检查[TrainNo]是否正确!",
                     )
 
                 return CommandResult(
