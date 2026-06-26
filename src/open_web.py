@@ -277,7 +277,8 @@ def main():
                         ui.button(q, on_click=lambda msg=q: send_message(msg)).props(
                             "flat dense size=sm"
                         )
-
+                    switch_Think = ui.switch("推理")
+                    switch_Think.set_enabled(False)
             # =========================
             # 右侧固定区域，版本号，菜单。
             # =========================
@@ -666,7 +667,9 @@ def main():
 
                     first_token = False
                     first_reasoning = False
-                    async for event in service.stream_answer(message):
+                    async for event in service.stream_answer(
+                        message, think=switch_Think.value
+                    ):
                         if event is None:
                             break
 
