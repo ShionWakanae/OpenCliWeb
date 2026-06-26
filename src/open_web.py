@@ -270,7 +270,6 @@ def main():
                         "devto的最新文章",
                         "成都明天的天气",
                         "查询国旗法的信息",
-                        "什么值得买搜5060Ti16GB",
                     ]
 
                     for q in quick_questions:
@@ -278,7 +277,7 @@ def main():
                             "flat dense size=sm"
                         )
                     switch_Think = ui.switch("推理")
-                    switch_Think.set_enabled(False)
+                    switch_Think.set_value(False)
             # =========================
             # 右侧固定区域，版本号，菜单。
             # =========================
@@ -796,6 +795,7 @@ def main():
 
                             text_content_with_format = text_content
                             prefix = f"- **[工具]** {tool_name} {stage}"
+                            log_prefix = f"[工具] {tool_name} {stage}"
                             if text_content:
                                 text_content_with_format = (
                                     f" [bold bright_blue]{text_content}[/]"
@@ -812,7 +812,7 @@ def main():
                                         else f"{text_content_with_format}"
                                     )
 
-                            log(f"{prefix}{text_content_with_format}")
+                            log(f"{log_prefix}{text_content_with_format}")
                             if (
                                 len(trace_message_content) > 0
                                 and trace_message_content[-1] != "\n"
