@@ -1,4 +1,6 @@
 import asyncio
+
+# import json
 import argparse
 from rich import print
 from utils.charstrings import display_width, truncate_by_width_approx
@@ -94,7 +96,11 @@ async def main(question, think=False, verbose=False):
             kwargs = event.get("kwargs")
             stage = event.get("stage")
             text_content = event.get("text_content")
-            text_content = text_content.replace("\n", " ").replace("\\n", " ")
+            text_len = event.get("text_len")
+            if text_len > 0:
+                # print(json.dumps(json.loads(text_content), indent=2))
+                text_content = f"({text_len}) {text_content}"
+            text_content = text_content.replace("\\n", " ").replace("\n", " ")
             text_content_with_format = text_content
             if stage == "→" and kwargs:
                 stage = f"{stage} {kwargs}"
@@ -108,6 +114,9 @@ async def main(question, think=False, verbose=False):
                         if display_width(text_content_with_format) > 140
                         else f"{text_content_with_format}"
                     )
+                    count = text_content_with_format.count('"')
+                    if count % 2 == 1:
+                        text_content_with_format += '"'
             log(
                 msg=f"{prefix}{text_content_with_format}",
                 need_newline_first=last_print_char != "\n",

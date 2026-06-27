@@ -127,11 +127,11 @@ def reduce_site_help_field(data):
         "columns",  # no need to know detail
         "example",  # is transfered to usage
         "command",  # dup with usage and example
+        "siteSession",  # no need to know detail
         "access",  # no need to know detail
         "domain",  # no need to know detail
         "browser",  # no need to know detail
         "positional",  # all positionals are positional
-        "required",  # all positionals are required
         "type",
     ]
     return remove_fields(data, fields)

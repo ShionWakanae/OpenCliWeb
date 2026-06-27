@@ -786,14 +786,17 @@ def main():
                             kwargs = event.get("kwargs")
                             stage = event.get("stage")
                             text_content = event.get("text_content")
-                            text_content = text_content.replace("\n", " ").replace(
-                                "\\n", " "
+                            text_len = event.get("text_len")
+                            if text_len > 0:
+                                # print(json.dumps(json.loads(text_content), indent=2))
+                                text_content = f"({text_len}) {text_content}"
+                            text_content = text_content.replace("\\n", " ").replace(
+                                "\n", " "
                             )
-
+                            text_content_with_format = text_content
                             if stage == "→" and kwargs:
                                 stage = f"{stage} {kwargs}"
 
-                            text_content_with_format = text_content
                             prefix = f"- **[工具]** {tool_name} {stage}"
                             log_prefix = f"[工具] {tool_name} {stage}"
                             if text_content:
@@ -811,6 +814,9 @@ def main():
                                         if display_width(text_content_with_format) > 140
                                         else f"{text_content_with_format}"
                                     )
+                                    count = text_content_with_format.count('"')
+                                    if count % 2 == 1:
+                                        text_content_with_format += '"'
 
                             log(f"{log_prefix}{text_content_with_format}")
                             if (

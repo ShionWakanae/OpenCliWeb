@@ -95,10 +95,8 @@ class IntelligentCLIAgent:
 
 ## 输出格式
 - 使用语言`{settings.language}`回答用户
-- 输出中需要保留链接
+- 输出Markdown格式的链接
 - 如果工具返回错误，解释可能的原因并给出建议
-- 严禁使用 LaTeX 数学公式语法。在表示“指向”或“到达”时，请使用中文箭头“→”（Unicode 字符）
-- 绝对禁止输出任何 $...$ 包裹的内容，包括 $\\rightarrow$、$\leftarrow$ 等。输出前请自检，若包含 $ 符号则视为错误。所有流程关系一律使用“→”
 """
 
     #     # prompt
@@ -337,6 +335,7 @@ class IntelligentCLIAgent:
                     "tool_name": f"({loop_count}.{tool_count}) {name}",
                     "message": name,
                     "kwargs": args,
+                    "text_len": 0,
                     "text_content": "",
                 }
                 full_name = name + json.dumps(args, sort_keys=True)
@@ -373,7 +372,8 @@ class IntelligentCLIAgent:
                     "tool_name": f"({loop_count}.{tool_count}) {name}",
                     "message": name,
                     "kwargs": args,
-                    "text_content": f"({len(text)}) {text}",
+                    "text_len": len(text),
+                    "text_content": text,
                 }
 
                 messages.append(
