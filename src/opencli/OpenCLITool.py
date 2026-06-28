@@ -237,7 +237,7 @@ class OpenCLITool:
         self,
         command,
         format_output="",
-        result_limit: int | None = None,
+        result_trim: int | None = None,
     ):
         format_output = format_output.lower()
         cmd = ["cmd", "/c", *self.base_args, *shlex.split(command)]
@@ -245,7 +245,7 @@ class OpenCLITool:
             cmd.extend(["-f", format_output])
 
         full_cmd = " ".join(cmd)
-        if self.tools_success[f"{full_cmd} {result_limit}"] >= 1:
+        if self.tools_success[f"{full_cmd} {result_trim}"] >= 1:
             return CommandResult(
                 success=False,
                 command=full_cmd,
@@ -321,7 +321,7 @@ class OpenCLITool:
                     if self.verbose:
                         print(traceback.format_exc())
 
-            self.tools_success[f"{full_cmd} {result_limit}"] += 1
+            self.tools_success[f"{full_cmd} {result_trim}"] += 1
             return CommandResult(
                 success=True,
                 command=full_cmd,
@@ -481,19 +481,19 @@ class OpenCLITool:
         )
 
         # execute
-        def cmd_exec(full_cmd, result_limit: int | None = None):
+        def cmd_exec(full_cmd, result_trim: int | None = None):
             def extract_limit(full_cmd):
                 pattern = r"--limit\s*(?:=\s*|\s+)(\d+)"
                 match = re.search(pattern, full_cmd)
                 return int(match.group(1)) if match else None
 
             try:
-                result_limit = int(result_limit) if result_limit is not None else None
+                result_trim = int(result_trim) if result_trim is not None else None
             except (TypeError, ValueError):
-                result_limit = None
+                result_trim = None
 
-            if result_limit is None:
-                result_limit = extract_limit(full_cmd)
+            if result_trim is None:
+                result_trim = extract_limit(full_cmd)
 
             for p in (
                 "opencli ",
@@ -504,7 +504,7 @@ class OpenCLITool:
                     full_cmd = full_cmd[len(p) :]
 
             r = self._execute_opencli_command(
-                full_cmd, format_output="yaml", result_limit=result_limit
+                full_cmd, format_output="yaml", result_trim=result_trim
             )
             if not r.success:
                 return r.error
@@ -512,13 +512,13 @@ class OpenCLITool:
                 result = r.to_dict()
                 try:
                     data = result["data"]
-                    if result_limit and isinstance(
+                    if result_trim and isinstance(
                         data,
                         list,
                     ):
-                        data = data[:result_limit]
+                        data = data[:result_trim]
                     elif (
-                        result_limit
+                        result_trim
                         and isinstance(
                             data,
                             dict,
@@ -528,7 +528,7 @@ class OpenCLITool:
                             list,
                         )
                     ):
-                        data["items"] = data["items"][:result_limit]
+                        data["items"] = data["items"][:result_trim]
 
                     if "toutiao" in full_cmd:
                         data = process_toutiao_data(data)
@@ -542,7 +542,7 @@ class OpenCLITool:
                     result["data"] = remove_fields(data, fields)
 
                 except Exception as e:
-                    print(f"处理 result_limit 时出错: {e}")
+                    print(f"处理 result_trim 时出错: {e}")
                     if self.verbose:
                         print(traceback.format_exc())
 
@@ -560,34 +560,34 @@ class OpenCLITool:
 # 参数1: **full_cmd**
 待执行的完整命令字符串(大小写敏感)
 
-### 参数1组成: 
-"网站名称 命令名称 positional参数1 positional参数2 ... --option参数1 值1 --option参数2 值2 ..."
+## 参数1组成: 
+"网站名称 命令名称 positional1 positional2 ... --option1 值1 --option2 值2 ..."
 
-### 参数1格式:
+## 参数1格式:
 site cmd positional(s) --option(s) option_value
 
-控制条数:
-需要控制返回条数时, 只要 options 中包含 limit参数 ，则必须添加 --limit
+### 控制返回条数:
+当完整命令的 option(s) 中包含 limit 时可用
+作用是控制(增加/减少)接口返回的结果数量, 格式为 --limit ?? , 其中 ?? 为返回结果条数
+比如:
+默认返回20条, 但用户只希望看10条
+默认返回50条, 但LLM希望取得尽可能多的条数用于判断, 于是扩大到100条
 
-不要输入：
-"full_cmd"字符串本身
-opencli
-cmd
--f 格式
-系统会自动补充
 
-# 参数2: **result_limit**
-如需限制条数则必须传入 result_limit 参数, 可与 --limit 同时使用
+# 参数2: **result_trim**
+需要减少最终返回条数时传入
+当参数1的指令不支持--limit时，参数2可限制返回条数
+没有必要限制条数时, 不要随意限制返回条数
 
 例如：
-result_limit = 5
+result_trim = 10
 """
             ),
             schema={
                 "type": "object",
                 "properties": {
                     "full_cmd": {"type": "string"},
-                    "result_limit": {"type": "integer"},
+                    "result_trim": {"type": "integer"},
                 },
                 "required": ["full_cmd"],
             },

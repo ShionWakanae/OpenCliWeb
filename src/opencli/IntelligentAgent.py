@@ -72,14 +72,13 @@ class IntelligentCLIAgent:
 
 2.
 第二步: 取得网站支持的命令列表:
-执行 site_help(site)
+执行 site_help(site), 返回命令列表
 
 3.
 第三步: 执行命令:
 你只能执行网站支持的命令
 拼接出完整命令字符串后：
-执行 cmd_exec(...)
-
+执行 cmd_exec(...)，返回执行结果
 
 ## 命令参数规则：
 不要拼 opencli
