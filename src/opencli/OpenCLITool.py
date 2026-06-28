@@ -49,6 +49,15 @@ def process_toutiao_data(data):
     return data
 
 
+def process_12306_trains_data(data):
+    """专门处理12306火车数据"""
+    # remove unnecessary fields
+    fields = [
+        "available",  # make llm confused if seat is available
+    ]
+    return remove_fields(data, fields)
+
+
 def remove_fields(obj, fields_to_remove):
     """递归删除指定列表中的所有字段"""
     if isinstance(obj, dict):
@@ -523,6 +532,8 @@ class OpenCLITool:
 
                     if "toutiao" in full_cmd:
                         data = process_toutiao_data(data)
+                    if "12306 trains" in full_cmd:
+                        data = process_12306_trains_data(data)
 
                     # remove unnecessary fields
                     fields = [
