@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from typing import Any
 from collections import defaultdict
 from pathlib import Path
-import asyncio
 from utils.logger import logger
 from opencli.SiteAgent import SiteAgent
 
@@ -402,14 +401,12 @@ class OpenCLITool:
             # cache未命中
             try:
                 help_data = self.site_help_summary_source(site)
-                desc = asyncio.run(
-                    self._site_agent.generate_site_description(
-                        site,
-                        help_data,
-                    )
+                desc = self._site_agent.generate_site_description(
+                    site,
+                    help_data,
                 )
                 cache[site] = {"desc": desc}
-                log(f"[SiteMetadata] Added: {site}")
+                log(f"[SiteMetadata] Added: {site}：{desc}")
             except Exception as e:
                 log(f"[SiteMetadata] Failed: {site} ({e})")
                 print(traceback.format_exc())

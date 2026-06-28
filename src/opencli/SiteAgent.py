@@ -1,11 +1,12 @@
 import json
-from openai import AsyncOpenAI
+from openai import OpenAI
 from utils.settings import settings
+from utils.json_extractor import safe_extract_json_fields
 
 
 class SiteAgent:
     def __init__(self):
-        self.client = AsyncOpenAI(
+        self.client = OpenAI(
             api_key=settings.llm_api_key,
             base_url=settings.llm_api_base,
         )
@@ -21,16 +22,16 @@ class SiteAgent:
 1. 不超过10个字
 2. 不允许猜测不存在的功能
 3. 不允许输出解释
-4. 返回JSON
+4. 返回纯JSON，不要使用markdown代码块，不要添加任何额外文本
 
-格式：
+格式（直接输出此JSON，不要用```json包裹）：
 
 {
     "desc": "B站视频平台"
 }
 """
 
-    async def generate_site_description(
+    def generate_site_description(
         self,
         site: str,
         help_data,
@@ -53,7 +54,7 @@ class SiteAgent:
             },
         ]
 
-        response = await self.client.chat.completions.create(
+        response = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
             temperature=0.1,
@@ -67,9 +68,9 @@ class SiteAgent:
         )
 
         content = response.choices[0].message.content
-
+        # print(content)
         try:
-            result = json.loads(content)
+            result = safe_extract_json_fields(content, ["desc"])
             return result.get("desc", "").strip()
 
         except Exception:
