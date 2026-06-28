@@ -789,9 +789,10 @@ def main():
                             text_len = event.get("text_len")
                             if text_len > 0:
                                 text_content = f"({text_len}) {text_content}"
-                            text_content = text_content.replace("\\n", " ").replace(
-                                "\n", " "
+                            text_content = text_content.replace("\\n", ".").replace(
+                                "\n", "."
                             )
+                            text_content = " ".join(text_content.split())
                             text_content_with_format = text_content
                             if stage == "→" and kwargs:
                                 stage = f"{stage} {kwargs}"
