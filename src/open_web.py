@@ -788,7 +788,6 @@ def main():
                             text_content = event.get("text_content")
                             text_len = event.get("text_len")
                             if text_len > 0:
-                                # print(json.dumps(json.loads(text_content), indent=2))
                                 text_content = f"({text_len}) {text_content}"
                             text_content = text_content.replace("\\n", " ").replace(
                                 "\n", " "

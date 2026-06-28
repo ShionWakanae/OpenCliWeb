@@ -1,6 +1,7 @@
 import asyncio
 import os
 import json
+import yaml
 import traceback
 from datetime import date
 import time
@@ -361,9 +362,9 @@ class IntelligentCLIAgent:
                         "error": str(e),
                     }
 
-                text = json.dumps(
-                    result,
-                    ensure_ascii=False,
+                # text = json.dumps(result, ensure_ascii=False, indent=2)
+                text = yaml.safe_dump(
+                    result, allow_unicode=True, default_flow_style=False
                 )
 
                 yield {
