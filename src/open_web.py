@@ -748,16 +748,17 @@ def main():
                             trace_message = event["message"]
                             trace_timing = event["timing"]
                             msg_str = f"- **[{trace_stage}]** {trace_message}"
+                            log_str = f"[{trace_stage}] {trace_message}"
                             timing_str = (
-                                "" if not trace_timing else f"(_{trace_timing}ms_)"
+                                "" if not trace_timing else f" ({trace_timing}ms)"
                             )
-                            log(msg_str)
+                            log(log_str)
                             if (
                                 len(trace_message_content) > 0
                                 and trace_message_content[-1] != "\n"
                             ):
                                 trace_message_content += "\n"
-                            trace_message_content += f"{msg_str} {timing_str}\n"
+                            trace_message_content += f"{msg_str}{timing_str}\n"
                             assistant_message.content = ""
                             trace_message_ui.content = render_markdown_html(
                                 trace_message_content
