@@ -149,14 +149,17 @@ class IntelligentCLIAgent:
                 "enable_thinking": False,
                 "thinking": {"type": "disabled"},
             }
+        last_trace_time = time.perf_counter()
         for _ in range(MAX_TOOL):
             loop_count += 1
             if self.verbose:
+                trace_timing = time.perf_counter() - last_trace_time
+                last_trace_time = time.perf_counter()
                 yield {
                     "type": "trace",
                     "stage": "轮次",
                     "message": f"({loop_count})",
-                    "timing": 0,
+                    "timing": trace_timing * 1000,
                 }
             tool_count = 0
             pp_start = time.perf_counter()
