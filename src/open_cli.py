@@ -148,7 +148,7 @@ async def main(question, think=False, verbose=False):
     )
     tps = 0 if streaming_s == 0 else round(int(completion_tokens) / streaming_s, 2)
     log(
-        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens}, <[bold bright_green]{model_name}[/]>"
+        f"Tokens in: {prompt_tokens}, Tokens out: {completion_tokens}, <[bold bright_green]{model_name}[/]>"
         + f" <{tps} tokens/s>",
         False,
     )

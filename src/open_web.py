@@ -873,7 +873,7 @@ def main():
                         else round(int(completion_tokens) / streaming_s, 2)
                     )
                     log(
-                        f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {completion_tokens}, <[bold bright_green]{model_name}[/]>"
+                        f"Tokens in: {prompt_tokens}, Tokens out: {completion_tokens}, <[bold bright_green]{model_name}[/]>"
                         + f" <{tps} tokens/s>",
                         False,
                     )
