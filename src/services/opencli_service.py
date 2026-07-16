@@ -136,14 +136,12 @@ class OpenCLIService:
                         break
                     else:
                         log(r.stdout.strip())
-                        time.sleep(2)
-                        log("[Service] Let's wait a minute.")
-                        time.sleep(2)
-                        log(
-                            "[Service] Not really one minute, I mean maybe a few seconds..."
-                        )
-                        time.sleep(2)
-                        log("[Service] OK try again...")
+                time.sleep(2)
+                log("[Service] Let's wait a minute.")
+                time.sleep(2)
+                log("[Service] Not really one minute, I mean maybe a few seconds...")
+                time.sleep(2)
+                log("[Service] OK try again...")
 
         # 如果有任何检查失败，则退出
         if not all_ok:
