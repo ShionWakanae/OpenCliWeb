@@ -37,6 +37,22 @@ class CommandResult:
         }
 
 
+def get_benchmark_data():
+    """获取虚拟的B站测试基准数据"""
+    test_path = Path("./data/test/bilibili_hot.yaml")
+    if not test_path.exists():
+        return "No data, No test file!"
+    try:
+        with open(test_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        if not data or len(data) == 0:
+            return "No data, Empty file!"
+        return yaml.safe_dump(data, allow_unicode=True, default_flow_style=False)
+    except Exception as e:
+        print(e)
+        return "No data, Exception!"
+
+
 def process_toutiao_data(data):
     """专门处理头条数据"""
     if isinstance(data, list):
@@ -479,6 +495,8 @@ class OpenCLITool:
 
         # execute
         def cmd_exec(full_cmd, result_trim: int | None = None):
+            # return get_benchmark_data()
+
             def extract_limit(full_cmd):
                 pattern = r"--limit\s*(?:=\s*|\s+)(\d+)"
                 match = re.search(pattern, full_cmd)
