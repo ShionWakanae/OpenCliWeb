@@ -1,13 +1,15 @@
 import asyncio
-import os
+import calendar
 import json
-import yaml
+import os
+import time
 import traceback
 from datetime import date
-import time
-import calendar
 from typing import Optional
+
+import yaml
 from openai import AsyncOpenAI
+
 from opencli.OpenCLITool import OpenCLITool
 from utils.logger import logger
 from utils.settings import settings
@@ -119,6 +121,37 @@ class IntelligentCLIAgent:
     # 2. 无问题则给前面推理打分（100分制）并回答 "核验通过: {{你打的分数}}分。"
     # """
 
+    def _extract_xml_tool_call(self, content: str):
+        """从文本中提取XML格式的工具调用"""
+        import re
+
+        # 匹配你的XML格式
+        pattern = r"<tool_call>\s*<function=([^>]+)>\s*<parameter=([^>]+)>\s*([\s\S]*?)\s*</parameter>\s*</function>\s*</tool_call>"
+        match = re.search(pattern, content)
+
+        if not match:
+            return None
+
+        tool_name = match.group(1).strip()
+        param_name = match.group(2).strip()
+        param_value = match.group(3).strip()
+
+        # 尝试解析参数为JSON或保持字符串
+        try:
+            args = json.loads(param_value)
+        except:
+            args = {param_name: param_value}
+
+        return {"name": tool_name, "args": args}
+
+    def _clean_xml_from_content(self, content: str):
+        """从内容中移除XML调用标签"""
+        import re
+
+        pattern = r"<tool_call>.*?</tool_call>"
+        cleaned = re.sub(pattern, "", content, flags=re.DOTALL)
+        return cleaned.strip()
+
     # internal
     async def _run(
         self,
@@ -135,7 +168,6 @@ class IntelligentCLIAgent:
                 "content": message,
             },
         ]
-        is_answering = False
         all_ok = False
         content = ""
         MAX_TOOL = 99
@@ -179,6 +211,7 @@ class IntelligentCLIAgent:
             content = ""
             reasoning = ""
             tool_calls = {}
+            is_xml_tool = False
             try:
                 async for chunk in stream:
                     if not first_token:
@@ -213,12 +246,21 @@ class IntelligentCLIAgent:
                     # 普通文本
                     if hasattr(delta, "content") and delta.content:
                         content += delta.content
-                        yield {
-                            "type": "token",
-                            "text": delta.content,
-                        }
-                        if not is_answering:
-                            is_answering = True
+                        if is_xml_tool:
+                            if delta.content.strip() == "</tool_call>":
+                                is_xml_tool = False
+                        else:
+                            if delta.content.strip() == "<tool_call>":
+                                is_xml_tool = True
+                                yield {
+                                    "type": "token",
+                                    "text": "⭐",
+                                }
+                                continue
+                            yield {
+                                "type": "token",
+                                "text": delta.content,
+                            }
 
                     # tool call
                     if delta.tool_calls:
@@ -267,7 +309,31 @@ class IntelligentCLIAgent:
                 else:
                     raise
 
-            # finish
+            # finish one round
+            # check XML tool call in content
+            if not tool_calls and content.strip():
+                # 检查是否包含XML格式的工具调用
+                xml_tool_call = self._extract_xml_tool_call(content)
+                if xml_tool_call:
+                    # 有XML工具调用，需要处理
+                    tool_name = xml_tool_call["name"]
+                    tool_args = xml_tool_call["args"]
+
+                    # 构造一个模拟的tool_call结构，复用现有逻辑
+                    tool_calls = {
+                        0: {
+                            "id": f"xml_call_{loop_count}",
+                            "name": tool_name,
+                            "args": json.dumps(tool_args)
+                            if isinstance(tool_args, dict)
+                            else tool_args,
+                        }
+                    }
+                    # 从content中移除XML调用部分，只保留纯文本
+                    content = self._clean_xml_from_content(content)
+                    # 继续执行后续的工具调用逻辑
+
+            # check tool calls
             if not tool_calls:
                 if content.strip() == "" and reasoning.strip() == "":
                     yield {
