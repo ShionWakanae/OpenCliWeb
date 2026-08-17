@@ -177,7 +177,10 @@ class IntelligentCLIAgent:
         pp_stage_len = 0
         if not self.think:
             extra_body = {
-                "chat_template_kwargs": {"enable_thinking": False},
+                "chat_template_kwargs": {
+                    "enable_thinking": False,
+                    "reasoning_strength": "low",
+                },
                 "enable_thinking": False,
                 "thinking": {"type": "disabled"},
             }

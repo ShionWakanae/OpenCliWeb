@@ -61,7 +61,10 @@ class SiteAgent:
             response_format={"type": "json_object"},
             stream=False,
             extra_body={
-                "chat_template_kwargs": {"enable_thinking": False},
+                "chat_template_kwargs": {
+                    "enable_thinking": False,
+                    "reasoning_strength": "low",
+                },
                 "enable_thinking": False,
                 "thinking": {"type": "disabled"},
             },
