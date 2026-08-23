@@ -1,8 +1,6 @@
 # 项目简介
 [![Me on CSDN](https://img.shields.io/badge/若苗瞬-CSDN-blue)](https://blog.csdn.net/ddrfan?type=blog) [![Me on Bilibili](https://img.shields.io/badge/欢迎-bilibili-red?style=flat&logo=youtube)](https://space.bilibili.com/688222797)
 
-**简体中文** | [English](README_en.md)
-
 ## 关于
 > [!Note]
 > 这是个基于[OpenCLI](https://github.com/jackwener/openCLI)的问答系统，继承了查询各种网站的功能。
