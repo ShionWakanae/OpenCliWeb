@@ -1,8 +1,14 @@
 import time
 import traceback
-import re
 from openai import AsyncOpenAI
 from utils.settings import settings
+from utils.opencli_doctor import (
+    evaluate_doctor_output,
+    find_legacy_disconnected_profile,
+    find_recovery_profile,
+    parse_doctor_envelope,
+    parse_profile_list,
+)
 from opencli.IntelligentAgent import IntelligentCLIAgent
 from opencli.OpenCLITool import OpenCLITool
 from utils.logger import logger
@@ -85,72 +91,209 @@ class OpenCLIService:
 
         # 记录是否连接profile
         check_profile_connect = False
+        evaluation = None
+        all_ok = False
         while True:
             # opencli doctor
-            r = self._cli_tool._execute_any_command("opencli doctor")
-            if not r.success:
-                log(r.error, False)
+            evaluation, error, raw_output = self._run_doctor()
+
+            if error is not None:
+                # opencli 自身报错（如 ok:false 信封）
+                log(
+                    f"[Service] opencli doctor failed: {error.get('message', '')}",
+                    False,
+                )
+                code = error.get("code")
+                if code:
+                    log(f"[Service] opencli doctor error code: {code}", False)
+                hint = error.get("hint") or error.get("help")
+                if hint:
+                    log(f"[Service] {hint}", False)
                 log(
                     "[Service] opencli doctor failed, please check!",
                     False,
                 )
                 exit(1)
-            else:
-                # 这里应该检查opencli doctor返回的：1)Daemon, 2)Extension, 3)Connectivity
-                output = r.stdout.strip()
-                # 需要检查的三个关键部分
-                checks = {
-                    "Daemon": "[OK] Daemon: running" in output,
-                    "Extension": "[OK] Extension: connected" in output,
-                    "Connectivity": "[OK] Connectivity: connected" in output,
-                }
 
-                all_ok = True
-                for component, status in checks.items():
-                    if status:
-                        log(f"[Service] opencli ✓ {component}: [green]OK[/]", False)
-                    else:
-                        log(f"[Service] opencli ✗ {component}: [red]FAILED[/]", False)
-                        all_ok = False
+            if evaluation is None:
+                log(
+                    "[Service] opencli doctor output could not be parsed, please check!",
+                    False,
+                )
+                exit(1)
 
-                if all_ok:
-                    break
-                if check_profile_connect:
-                    break
+            # 三项检查：Daemon / Extension / Connectivity
+            self._log_doctor_evaluation(evaluation)
+            all_ok = evaluation.all_ok
 
-                check_profile_connect = True
-                pattern2 = r'Browser profile "([^"]+)" is not connected'
-                match2 = re.search(pattern2, output)
-                if match2:
-                    profile_id = match2.group(1)
-                    log(f"[Service] try use profile `{profile_id}` ...")
-                    r = self._cli_tool._execute_any_command(
-                        f"opencli profile use {profile_id}"
+            if all_ok:
+                break
+            if check_profile_connect:
+                break
+
+            check_profile_connect = True
+            profile_label = self._pick_recovery_profile(evaluation, raw_output)
+            if profile_label:
+                log(f"[Service] try use profile `{profile_label}` ...")
+                r = self._cli_tool._execute_any_command(
+                    f"opencli profile use {profile_label}"
+                )
+                if not r.success:
+                    log(self._command_error(r), False)
+                    log(
+                        "[Service] opencli profile use failed, please check!",
+                        False,
                     )
-                    if not r.success:
-                        log(r.error, False)
-                        log(
-                            "[Service] opencli profile use failed, please check!",
-                            False,
-                        )
-                        break
-                    else:
-                        log(r.stdout.strip())
-                time.sleep(2)
-                log("[Service] Let's wait a minute.")
-                time.sleep(2)
-                log("[Service] Not really one minute, I mean maybe a few seconds...")
-                time.sleep(2)
-                log("[Service] OK try again...")
+                    break
+                else:
+                    log(r.stdout.strip())
+            time.sleep(2)
+            log("[Service] Let's wait a minute.")
+            time.sleep(2)
+            log("[Service] Not really one minute, I mean maybe a few seconds...")
+            time.sleep(2)
+            log("[Service] OK try again...")
 
         # 如果有任何检查失败，则退出
         if not all_ok:
-            log("[Service] opencli doctor validation failed", False)
-            print(output)
-            print()
+            failed = ", ".join(evaluation.failed_checks) if evaluation else ""
+            log(
+                "[Service] opencli doctor validation failed"
+                + (f": {failed}" if failed else ""),
+                False,
+            )
+            if evaluation is not None:
+                log(self._format_doctor_summary(evaluation), False)
             exit(1)
 
         log("[Service] opencli doctor passed")
+
+    def _run_doctor(self):
+        """执行 opencli doctor 并解析输出。
+
+        返回 (evaluation, error, raw_output)：
+          - evaluation: 解析出的自检结果（新版 JSON 信封 / 旧版文本）
+          - error:     opencli 自身报错时的错误字典（ok:false 信封）
+          - raw_output: 原始输出，供旧版文本解析兜底使用
+        """
+        r = self._cli_tool._execute_any_command("opencli doctor")
+        raw_output = r.stdout or ""
+
+        if not r.success:
+            # opencli 失败时错误信封(JSON)打在 stdout 上，stderr 可能为空
+            _, error = parse_doctor_envelope(raw_output)
+            if error is None:
+                detail = (r.error or raw_output or "").strip()
+                error = {"message": detail or "opencli doctor failed"}
+            return None, error, raw_output
+
+        evaluation, error = evaluate_doctor_output(raw_output)
+        return evaluation, error, raw_output
+
+    def _command_error(self, result) -> str:
+        """取一条可读的错误描述。
+
+        opencli 失败时把错误信封(JSON)打在 stdout 上，stderr 往往为空，
+        所以这里要同时考虑 stdout。
+        """
+        return (result.stderr or result.stdout or result.error or "").strip()
+
+    def _log_doctor_evaluation(self, evaluation):
+        """打印 doctor 自检结果。
+
+        issues 只作为警告展示，不阻断启动；
+        只有 daemon / extension / connectivity 三项失败才会阻断。
+        """
+        for component, status in evaluation.checks.items():
+            if status:
+                log(f"[Service] opencli ✓ {component}: [green]OK[/]", False)
+            else:
+                log(f"[Service] opencli ✗ {component}: [red]FAILED[/]", False)
+
+        details = evaluation.details
+
+        versions = []
+        if details.get("cliVersion"):
+            versions.append(f"cli v{details['cliVersion']}")
+        if details.get("daemonVersion"):
+            versions.append(f"daemon v{details['daemonVersion']}")
+        if details.get("extensionVersion"):
+            versions.append(f"extension v{details['extensionVersion']}")
+        if versions:
+            log(f"[Service] opencli version: {', '.join(versions)}", False)
+
+        duration_ms = details.get("connectivityDurationMs")
+        if duration_ms is not None and evaluation.checks.get("Connectivity"):
+            log(f"[Service] opencli connectivity: {duration_ms}ms", False)
+
+        # 警告信息，不影响启动
+        warnings = []
+        if details.get("daemonFlaky"):
+            warnings.append("daemon is unstable")
+        if details.get("daemonStale"):
+            warnings.append("daemon version is stale")
+        if details.get("extensionFlaky"):
+            warnings.append("extension connection is unstable")
+        if details.get("extensionOutdated"):
+            current = details.get("extensionVersion")
+            latest = details.get("latestExtensionVersion")
+            if current and latest:
+                warnings.append(f"extension update available: v{current} → v{latest}")
+            else:
+                warnings.append("extension is outdated")
+        for warning in warnings:
+            log(f"[Service] opencli ⚠ {warning}", False)
+
+        for issue in evaluation.issues:
+            log(f"[Service] opencli ⚠ {issue}", False)
+
+    def _format_doctor_summary(self, evaluation) -> str:
+        """doctor 未通过时的可读摘要。
+
+        新版输出是 JSON，直接打印原文很难读，这里换成可读的摘要。
+        """
+        lines = []
+        for component, status in evaluation.checks.items():
+            lines.append(f"  {component:<13}: {'OK' if status else 'FAILED'}")
+
+        details = evaluation.details
+        versions = []
+        if details.get("cliVersion"):
+            versions.append(f"cli v{details['cliVersion']}")
+        if details.get("daemonVersion"):
+            versions.append(f"daemon v{details['daemonVersion']}")
+        if details.get("extensionVersion"):
+            versions.append(f"extension v{details['extensionVersion']}")
+        if versions:
+            lines.append(f"  {'version':<13}: {', '.join(versions)}")
+
+        for issue in evaluation.issues:
+            lines.append(f"  issue         : {issue}")
+
+        return "\n".join(lines)
+
+    def _pick_recovery_profile(self, evaluation, raw_output):
+        """挑一个用于恢复的 profile 名。
+
+        - 新版 JSON 信封：`opencli profile use` 只是修改默认 profile 指向，
+          不会拉起浏览器，所以应把默认指向一个**仍然在线**的 profile
+          （对应 doctor 的 stale default / 多 profile 场景）。
+        - 旧版文本格式：沿用旧行为，使用文本中提示的 profile 名。
+        """
+        if evaluation.source == "legacy":
+            return find_legacy_disconnected_profile(raw_output)
+
+        r = self._cli_tool._execute_any_command("opencli profile list")
+        if not r.success:
+            log(
+                f"[Service] opencli profile list failed: {self._command_error(r)}",
+                False,
+            )
+            return None
+
+        profiles = parse_profile_list(r.stdout)
+        profile = find_recovery_profile(profiles)
+        return profile.label if profile else None
 
     async def stream_answer(
         self,

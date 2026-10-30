@@ -220,6 +220,8 @@ class OpenCLITool:
                 return CommandResult(
                     success=False,
                     command=" ".join(cmd),
+                    # opencli 失败时错误信封(JSON)打在 stdout 上，stderr 可能为空
+                    stdout=result.stdout,
                     stderr=result.stderr,
                     error=result.stderr,
                 )
