@@ -110,18 +110,13 @@ WebUI 沿用了作者的另一个项目 [Llamarkdown](https://github.com/ShionWa
 npm install -g @jackwener/opencli
 ```
 
-然后安装浏览器扩展，二选一：
-
-- **Chrome 应用商店**（推荐）：[安装 OpenCLI 扩展](https://chromewebstore.google.com/detail/opencli/ildkmabpimmkaediidaifkhjpohdnifk)。
-- **手动安装**：从 [GitHub Releases](https://github.com/jackwener/opencli/releases) 下载 `opencli-extension-v{version}.zip`，解压后在 `chrome://extensions` 开启开发者模式，选择「加载已解压的扩展程序」。详见 [Browser Bridge 指南](https://opencli.info/docs/zh/guide/browser-bridge.html)。
-
-装好后用下面的命令自检，三项都应显示 OK：
+浏览器扩展安装方式和完整配置请参阅 [OpenCLI 官方文档](https://opencli.info/docs/zh/guide/installation.html)。安装后可用下面的命令自检：
 
 ```powershell
 opencli doctor
 ```
 
-项目启动时也会自动执行一次 `opencli doctor`。如果检测到某个浏览器 profile 没有连接，会尝试执行 `opencli profile use <profile>` 后重试。
+项目启动时也会自动执行一次检查。
 
 ### 2. 克隆仓库并安装依赖
 
@@ -281,40 +276,7 @@ opencli list -f yaml  # YAML 格式
 
 ## 项目结构
 
-```
-OpenCliWeb/
-├── README.md                 # 中文文档
-├── README_en.md              # 英文文档
-├── LICENSE                   # MIT 许可证
-├── requirements.txt          # Python 依赖
-├── pyproject.toml            # ruff 配置
-├── .env_sample               # 环境变量样例
-├── run_cli.ps1               # 激活虚拟环境（命令行入口）
-├── run_webui.ps1             # 激活虚拟环境并启动 WebUI
-├── data/                     # 运行时生成：站点描述缓存（不入版本库）
-│   └── sites_metadata.json
-├── res/                      # 图片资源
-│   ├── logo.png
-│   ├── webui_0.png / webui.png / webui_1.png
-│   └── cat_typing.gif
-└── src/
-    ├── open_cli.py           # 命令行入口
-    ├── open_web.py           # WebUI 入口（NiceGUI）
-    ├── services/
-    │   └── opencli_service.py # 服务初始化与自检、事件流封装
-    ├── opencli/
-    │   ├── IntelligentAgent.py # LLM 智能体：工具循环、推理开关
-    │   ├── OpenCLITool.py      # 工具实现：site_help / cmd_exec
-    │   └── SiteAgent.py        # 站点用途描述自动生成
-    ├── ui/
-    │   ├── css/app.css
-    │   └── js/chat_scroll.js
-    └── utils/
-        ├── settings.py       # 配置读取与校验
-        ├── logger.py         # 日志
-        ├── json_extractor.py # JSON 字段安全提取
-        └── charstrings.py    # 终端宽度处理
-```
+核心代码位于 `src/`，运行时站点缓存位于 `data/`，图片资源位于 `res/`。
 
 ## 常见问题
 
@@ -332,7 +294,7 @@ OpenCLI 未安装，执行 `npm install -g @jackwener/opencli`，再用 `opencli
 - `Connectivity: connected` —— 目标站点未连通。确认 Chrome 已登录该网站。
 - 提示 `Browser profile "xxx" is not connected` —— 项目会自动尝试 `opencli profile use xxx` 后重试，也可手动执行。
 
-参考 [OpenCLI 故障排查文档](https://opencli.info/docs/guide/troubleshooting.html)（英文）。
+更多 OpenCLI 问题请参考 [官方故障排查文档](https://opencli.info/docs/guide/troubleshooting.html)。
 
 **第一次查询很慢**
 首次运行需要为每个站点生成一句用途描述（由 LLM 依据站点帮助文档反推），结果写入 `data/sites_metadata.json`。之后只做增量维护，第二次起就很快了。

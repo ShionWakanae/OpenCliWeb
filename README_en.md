@@ -110,18 +110,13 @@ The WebUI interface is inherited from the author's other project, [Llamarkdown](
 npm install -g @jackwener/opencli
 ```
 
-Then install the browser extension — pick either way:
-
-- **Chrome Web Store** (recommended): [install the OpenCLI extension](https://chromewebstore.google.com/detail/opencli/ildkmabpimmkaediidaifkhjpohdnifk).
-- **Manual install**: download `opencli-extension-v{version}.zip` from the [GitHub Releases](https://github.com/jackwener/opencli/releases), unzip it, open `chrome://extensions`, enable Developer mode, and choose "Load unpacked". See the [Browser Bridge guide](https://opencli.info/docs/guide/browser-bridge.html).
-
-Check the installation with the command below — all three items should report OK:
+See the [OpenCLI installation guide](https://opencli.info/docs/guide/installation.html) for browser extension setup and full details. Then check the installation with:
 
 ```powershell
 opencli doctor
 ```
 
-The project also runs `opencli doctor` once at startup. If it detects a browser profile that is not connected, it will try `opencli profile use <profile>` and retry.
+The project also runs a check once at startup.
 
 ### 2. Clone the repository and install dependencies
 
@@ -283,40 +278,7 @@ The cached sites and their descriptions live in `data/sites_metadata.json`.
 
 ## Project Structure
 
-```
-OpenCliWeb/
-├── README.md                 # Chinese documentation
-├── README_en.md              # English documentation
-├── LICENSE                   # MIT license
-├── requirements.txt          # Python dependencies
-├── pyproject.toml            # ruff configuration
-├── .env_sample               # Environment variable template
-├── run_cli.ps1               # Activates the venv (CLI entry point)
-├── run_webui.ps1             # Activates the venv and starts the WebUI
-├── data/                     # Generated at runtime: site description cache (not tracked)
-│   └── sites_metadata.json
-├── res/                      # Image assets
-│   ├── logo.png
-│   ├── webui_0.png / webui.png / webui_1.png
-│   └── cat_typing.gif
-└── src/
-    ├── open_cli.py           # CLI entry point
-    ├── open_web.py           # WebUI entry point (NiceGUI)
-    ├── services/
-    │   └── opencli_service.py # Service bootstrap, self-checks, event stream
-    ├── opencli/
-    │   ├── IntelligentAgent.py # LLM agent: tool loop, reasoning toggle
-    │   ├── OpenCLITool.py      # Tool implementations: site_help / cmd_exec
-    │   └── SiteAgent.py        # Automatic site description generation
-    ├── ui/
-    │   ├── css/app.css
-    │   └── js/chat_scroll.js
-    └── utils/
-        ├── settings.py       # Configuration loading and validation
-        ├── logger.py         # Logging
-        ├── json_extractor.py # Safe JSON field extraction
-        └── charstrings.py    # Terminal width handling
-```
+Core code lives in `src/`, runtime site metadata is stored in `data/`, and images are in `res/`.
 
 ## Troubleshooting
 
@@ -334,7 +296,7 @@ Not all three `opencli doctor` checks passed. Work through them one by one:
 - `Connectivity: connected` — the target site is unreachable. Confirm you are logged into that site in Chrome.
 - `Browser profile "xxx" is not connected` — the project automatically tries `opencli profile use xxx` and retries; you can also run it manually.
 
-See the [OpenCLI troubleshooting guide](https://opencli.info/docs/guide/troubleshooting.html).
+For OpenCLI-specific issues, see the [official troubleshooting guide](https://opencli.info/docs/guide/troubleshooting.html).
 
 **The first query is very slow**
 On the first run, a one-line purpose description is generated for every site (the LLM reverse-engineers it from the site's help output) and written to `data/sites_metadata.json`. After that only changed entries are refreshed, so subsequent runs are fast.
