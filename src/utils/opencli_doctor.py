@@ -250,18 +250,24 @@ def evaluate_doctor_output(raw: str) -> tuple[DoctorEvaluation | None, dict | No
     return None, None
 
 
-def parse_profile_list(raw: str) -> list[ProfileEntry]:
+def parse_profile_list_envelope(raw: str) -> tuple[list[ProfileEntry] | None, dict | None]:
     """解析 `opencli profile list` 的 JSON 输出。
 
     返回所有 profile（含未连接的），未连接的 profile 其 connected 为 False。
     """
     payload = _loads_object(raw)
     if payload is None:
-        return []
+        return None, {"message": "opencli profile list returned invalid JSON"}
+
+    if payload.get("ok") is False:
+        error = payload.get("error")
+        if isinstance(error, dict):
+            return None, error
+        return None, {"message": str(error) if error else "opencli profile list failed"}
 
     data = payload.get("data")
     if not isinstance(data, dict):
-        return []
+        return None, {"message": "opencli profile list response is missing data"}
 
     profiles: list[ProfileEntry] = []
     for item in data.get("profiles") or []:
@@ -283,7 +289,13 @@ def parse_profile_list(raw: str) -> list[ProfileEntry]:
             )
         )
 
-    return profiles
+    return profiles, None
+
+
+def parse_profile_list(raw: str) -> list[ProfileEntry]:
+    """兼容旧调用方，仅返回成功解析出的 profile。"""
+    profiles, _ = parse_profile_list_envelope(raw)
+    return profiles or []
 
 
 def find_recovery_profile(profiles: list[ProfileEntry]) -> ProfileEntry | None:
@@ -314,3 +326,4 @@ def find_legacy_disconnected_profile(output: str) -> str | None:
     """旧版文本格式里未连接的 profile 名称。"""
     match = re.search(LEGACY_PROFILE_PATTERN, output or "")
     return match.group(1) if match else None
+

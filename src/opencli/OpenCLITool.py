@@ -196,11 +196,11 @@ class OpenCLITool:
         self,
         command,
     ):
-
+        args = command if isinstance(command, (list, tuple)) else shlex.split(command)
         cmd = [
             "cmd",
             "/c",
-            *shlex.split(command),
+            *args,
         ]
 
         try:
@@ -257,11 +257,13 @@ class OpenCLITool:
         result_trim: int | None = None,
     ):
         format_output = format_output.lower()
-        cmd = ["cmd", "/c", *self.base_args, *shlex.split(command)]
-        if format_output and "-f " not in command and "--format " not in command:
+        args = command if isinstance(command, (list, tuple)) else shlex.split(command)
+        cmd = ["cmd", "/c", *self.base_args, *args]
+        command_text = command if isinstance(command, str) else " ".join(command)
+        if format_output and "-f " not in command_text and "--format " not in command_text:
             cmd.extend(["-f", format_output])
 
-        full_cmd = " ".join(cmd)
+        full_cmd = subprocess.list2cmdline(cmd)
         if self.tools_success[f"{full_cmd} {result_trim}"] >= 1:
             return CommandResult(
                 success=False,
@@ -641,3 +643,4 @@ result_trim = 10
             raise Exception(f"未知工具:{name}")
 
         return self._functions[name](**args)
+
