@@ -7,7 +7,7 @@ from utils.opencli_doctor import (
     find_legacy_disconnected_profile,
     find_recovery_profile,
     parse_doctor_envelope,
-    parse_profile_list,
+    parse_profile_list_envelope,
 )
 from opencli.IntelligentAgent import IntelligentCLIAgent
 from opencli.OpenCLITool import OpenCLITool
@@ -136,12 +136,13 @@ class OpenCLIService:
             if profile_label:
                 log(f"[Service] try use profile `{profile_label}` ...")
                 r = self._cli_tool._execute_any_command(
-                    f"opencli profile use {profile_label}"
+                    ["opencli", "profile", "use", profile_label]
                 )
                 if not r.success:
-                    log(self._command_error(r), False)
+                    detail = self._command_error(r)
+                    log(f"[Service] opencli profile use failed for `{profile_label}`: {detail}", False)
                     log(
-                        "[Service] opencli profile use failed, please check!",
+                        "[Service] recovery failed. Check that the profile alias/context ID is valid and that the OpenCLI daemon is running, then retry `opencli profile list`.",
                         False,
                     )
                     break
@@ -285,13 +286,31 @@ class OpenCLIService:
 
         r = self._cli_tool._execute_any_command("opencli profile list")
         if not r.success:
+            detail = self._command_error(r)
             log(
-                f"[Service] opencli profile list failed: {self._command_error(r)}",
+                f"[Service] opencli profile list failed: {detail}",
+                False,
+            )
+            log(
+                "[Service] Recovery cannot continue. Run `opencli profile list` manually and fix the reported error before restarting.",
                 False,
             )
             return None
 
-        profiles = parse_profile_list(r.stdout)
+        profiles, error = parse_profile_list_envelope(r.stdout)
+        if error is not None:
+            message = error.get("message") or "unknown error"
+            log(f"[Service] opencli profile list error: {message}", False)
+            if error.get("code"):
+                log(f"[Service] opencli profile list error code: {error['code']}", False)
+            if error.get("hint") or error.get("help"):
+                log(f"[Service] {error.get('hint') or error.get('help')}", False)
+            log(
+                "[Service] Recovery cannot continue. Run `opencli profile list` manually and resolve the error before restarting.",
+                False,
+            )
+            return None
+
         profile = find_recovery_profile(profiles)
         return profile.label if profile else None
 
@@ -398,3 +417,4 @@ class OpenCLIService:
 
 
 service = OpenCLIService()
+
