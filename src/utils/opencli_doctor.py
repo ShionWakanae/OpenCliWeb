@@ -15,11 +15,15 @@ opencli 2.x 起，`opencli doctor` 不再输出人类可读的文本，只输出
 - 错误信封打在 **stdout** 上，stderr 往往为空，解析时不要只看 stderr。
 - 2.x 里文本渲染器 `renderBrowserDoctorReport` 仍然存在，但已不再挂载到
   doctor 命令上，所以文本解析只对 opencli 1.x 有意义，这里保留兼容解析。
+
+信封的识别与解析统一走 `utils.opencli_envelope`，避免各模块各写一套。
 """
 
 import json
 import re
 from dataclasses import dataclass, field
+
+from utils.opencli_envelope import loads_object, parse_envelope
 
 # 旧版文本格式中需要检查的三个关键部分
 LEGACY_CHECK_PATTERNS = {
@@ -72,29 +76,7 @@ class ProfileEntry:
 
 def _loads_object(text: str) -> dict | None:
     """从文本里尽力提取一个 JSON 对象。"""
-    text = (text or "").strip()
-    if not text:
-        return None
-
-    try:
-        payload = json.loads(text)
-        if isinstance(payload, dict):
-            return payload
-    except Exception:
-        pass
-
-    # stdout 里可能混有日志行，退化成截取最外层花括号
-    start = text.find("{")
-    end = text.rfind("}")
-    if start == -1 or end == -1 or end <= start:
-        return None
-
-    try:
-        payload = json.loads(text[start : end + 1])
-    except Exception:
-        return None
-
-    return payload if isinstance(payload, dict) else None
+    return loads_object(text)
 
 
 def parse_doctor_envelope(raw: str) -> tuple[dict | None, dict | None]:
@@ -105,24 +87,20 @@ def parse_doctor_envelope(raw: str) -> tuple[dict | None, dict | None]:
       - ok:false -> (None, error)
       - 非 JSON  -> (None, None)，交给旧版文本解析
     """
-    payload = _loads_object(raw)
-    if payload is None:
-        return None, None
-
-    ok = payload.get("ok")
+    ok, data, error = parse_envelope(raw)
 
     if ok is False:
-        error = payload.get("error")
-        if isinstance(error, dict):
-            return None, error
-        return None, {"message": str(error) if error else "unknown error"}
+        return None, error
 
     if ok is True:
-        data = payload.get("data")
         return (data if isinstance(data, dict) else {}), None
 
     # 信封缺少 ok 字段但带 data：仍按 report 处理，
     # 否则会误落到旧版文本解析，把一份正常的 JSON 当成失败。
+    payload = _loads_object(raw)
+    if payload is None:
+        return None, None
+
     data = payload.get("data")
     if isinstance(data, dict):
         return data, None

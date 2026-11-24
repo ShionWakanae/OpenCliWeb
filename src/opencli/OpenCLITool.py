@@ -9,6 +9,11 @@ from typing import Any
 from collections import defaultdict
 from pathlib import Path
 from utils.logger import logger
+from utils.opencli_envelope import (
+    describe_error,
+    parse_envelope,
+    parse_payload,
+)
 from opencli.SiteAgent import SiteAgent
 
 log = logger.log
@@ -23,6 +28,9 @@ class CommandResult:
     data_format: str = ""
     command: str = ""
     error: str = ""
+    # opencli 错误信封里的错误码 / 提示，便于上层按需使用
+    error_code: str = ""
+    error_hint: str = ""
 
     def to_dict(self):
         payload = self.data
@@ -202,6 +210,8 @@ class OpenCLITool:
             "/c",
             *args,
         ]
+        # 与 _execute_opencli_command 保持一致：参数里带空格/特殊字符时也要可读
+        full_cmd = subprocess.list2cmdline(cmd)
 
         try:
             if self.verbose:
@@ -216,20 +226,32 @@ class OpenCLITool:
                 text=True,
             )
 
-            if result.returncode != 0:
-                return CommandResult(
-                    success=False,
-                    command=" ".join(cmd),
-                    # opencli 失败时错误信封(JSON)打在 stdout 上，stderr 可能为空
+            # opencli 2.x：失败信封(JSON)打在 stdout 上，stderr 恒为空，
+            # 所以成败必须先看 JSON 信封结构，再看退出码。
+            envelope_ok, _, envelope_error = parse_envelope(result.stdout)
+            failed = envelope_ok is False or result.returncode != 0
+
+            if failed:
+                error, error_code, error_hint = describe_error(
+                    envelope_error,
                     stdout=result.stdout,
                     stderr=result.stderr,
-                    error=result.stderr,
+                    returncode=result.returncode,
+                )
+                return CommandResult(
+                    success=False,
+                    command=full_cmd,
+                    stdout=result.stdout,
+                    stderr=result.stderr,
+                    error=error,
+                    error_code=error_code,
+                    error_hint=error_hint,
                 )
 
             data = None
             return CommandResult(
                 success=True,
-                command=" ".join(cmd),
+                command=full_cmd,
                 stdout=result.stdout,
                 stderr=result.stderr,
                 data=data,
@@ -298,6 +320,12 @@ class OpenCLITool:
                 text=True,
             )
 
+            # opencli 2.x：失败信封(JSON)打在 stdout 上，stderr 恒为空；
+            # 且失败时无论请求哪种 -f 格式，返回的都是 JSON 信封。
+            # 因此成败判定必须先看 JSON 信封结构，再看退出码。
+            envelope_ok, _, envelope_error = parse_envelope(result.stdout)
+            failed = envelope_ok is False or result.returncode != 0
+
             if self.on_execute:
                 self.on_execute(
                     {
@@ -305,37 +333,51 @@ class OpenCLITool:
                         "message": command,
                         "stage": "finished",
                         "command": command,
-                        "success": result.returncode == 0,
+                        "success": not failed,
                     }
                 )
 
-            if result.returncode != 0:
+            if failed:
+                error, error_code, error_hint = describe_error(
+                    envelope_error,
+                    stdout=result.stdout,
+                    stderr=result.stderr,
+                    returncode=result.returncode,
+                )
+
+                # 12306 的历史特例：适配器把提示写在错误消息里，
+                # 新版 opencli 会把它放进信封的 message 字段，所以两边都查。
+                error_text = f"{error}\n{result.stderr}"
                 if (
                     "opencli 12306" in full_cmd
-                    and "queryByTrainNo returned non-JSON body" in result.stderr
+                    and "queryByTrainNo returned non-JSON body" in error_text
                 ):
                     return CommandResult(
                         success=False,
                         command=full_cmd,
+                        stdout=result.stdout,
                         stderr=result.stderr,
                         error="ok: false\nerror: 未查询到结果, 请检查[TrainNo]是否正确!",
+                        error_code=error_code,
+                        error_hint=error_hint,
                     )
 
                 return CommandResult(
                     success=False,
                     command=full_cmd,
+                    stdout=result.stdout,
                     stderr=result.stderr,
-                    error=result.stderr,
+                    error=error,
+                    error_code=error_code,
+                    error_hint=error_hint,
                 )
 
             data = None
             if format_output and result.stdout.strip():
                 try:
-                    if format_output == "json":
-                        data = json.loads(result.stdout)
-                    if format_output == "yaml":
-                        data = yaml.safe_load(result.stdout)
-
+                    # parse_payload 会识别信封并解包 data，
+                    # 非信封时按请求的 json / yaml 解析。
+                    data = parse_payload(result.stdout, format_output)
                 except Exception:
                     if self.verbose:
                         print(traceback.format_exc())
@@ -370,7 +412,7 @@ class OpenCLITool:
         r = self._execute_opencli_command(command="--help", format_output="yaml")
         if not r.success:
             log(r.error)
-            raise Exception(r.error)
+            raise Exception(r.error or "获取网站列表失败!")
         if r.data:
             if "site_adapters" in r.data:
                 if "sites" in r.data["site_adapters"]:
@@ -471,7 +513,7 @@ class OpenCLITool:
                 return f"error: ({site}) is not a supported site name!"
             r = self._execute_opencli_command(f"{site} --help", format_output="yaml")
             if not r.success:
-                return r.error
+                return r.error or f"error: 获取 ({site}) 的命令帮助失败!"
             if r.data:
                 data = r.data
                 data = reduce_site_help_field(data)
@@ -526,7 +568,7 @@ class OpenCLITool:
                 full_cmd, format_output="yaml", result_trim=result_trim
             )
             if not r.success:
-                return r.error
+                return r.error or "error: 命令执行失败, 请检查命令是否正确"
             if r.data:
                 result = r.to_dict()
                 try:
