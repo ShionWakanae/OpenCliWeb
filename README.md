@@ -233,6 +233,7 @@ python .\src\open_cli.py "你的问题" [--Think] [--Verbose]
 - **站点特例**：toutiao 会清理 URL 查询参数；12306 会移除"是否有余票"字段，避免模型误判。
 - **两种工具调用格式**：既支持标准 function calling，也兼容部分模型直接输出 XML 形式的工具调用。
 - **站点清单缓存**：站点列表来自 `opencli --help`，启动时为每个站点生成一句用途描述并缓存到 `data/sites_metadata.json`，之后只做增量维护。
+- **失败判定走 JSON 信封**：opencli 2.x 起，命令失败时无论请求哪种 `-f` 格式，返回的都是 JSON 错误信封 `{"ok":false,"error":{code,message,exitCode,hint}}`，且它打在 **stdout** 上、stderr 恒为空。因此项目统一先按 JSON 结构判定成败，再把错误转成 `opencli 错误 [code]: message` + `提示: hint` 的人读文本返回给模型，而不是把原始 JSON 丢给模型。详见 `src/utils/opencli_envelope.py`。
 
 ## 配置项
 

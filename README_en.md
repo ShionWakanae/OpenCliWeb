@@ -235,6 +235,7 @@ User question
 - **Per-site special cases** — toutiao URLs are cleaned of query parameters; the 12306 "seat still available" field is removed so the model cannot misread it.
 - **Two tool-call formats** — standard function calling is supported, and so is the XML-style tool call that some models emit directly.
 - **Site list cache** — the site list comes from `opencli --help`; at startup a one-line purpose description is generated for each site and cached in `data/sites_metadata.json`, and only changed entries are refreshed afterwards.
+- **Failure detection via the JSON envelope** — since opencli 2.x, a failing command returns a JSON error envelope `{"ok":false,"error":{code,message,exitCode,hint}}` regardless of the requested `-f` format, and it is printed on **stdout** while stderr stays empty. The project therefore judges success/failure from the JSON structure first, then converts the failure into human-readable text (`opencli error [code]: message` + `hint: ...`) instead of handing raw JSON to the model. See `src/utils/opencli_envelope.py`.
 
 ## Configuration
 

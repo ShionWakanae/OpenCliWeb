@@ -9,6 +9,7 @@ from utils.opencli_doctor import (
     parse_doctor_envelope,
     parse_profile_list_envelope,
 )
+from utils.opencli_envelope import parse_envelope
 from opencli.IntelligentAgent import IntelligentCLIAgent
 from opencli.OpenCLITool import OpenCLITool
 from utils.logger import logger
@@ -147,7 +148,7 @@ class OpenCLIService:
                     )
                     break
                 else:
-                    log(r.stdout.strip())
+                    log(self._profile_use_summary(r.stdout))
             time.sleep(2)
             log("[Service] Let's wait a minute.")
             time.sleep(2)
@@ -180,8 +181,14 @@ class OpenCLIService:
         r = self._cli_tool._execute_any_command("opencli doctor")
         raw_output = r.stdout or ""
 
+        # opencli 2.x：失败信封(JSON)打在 stdout 上，stderr 可能为空，
+        # 所以成败直接以信封结构为准，不依赖退出码。
+        envelope_ok, _, envelope_error = parse_envelope(raw_output)
+        if envelope_ok is False:
+            return None, envelope_error, raw_output
+
         if not r.success:
-            # opencli 失败时错误信封(JSON)打在 stdout 上，stderr 可能为空
+            # 非信封的失败：退化到 doctor 的旧版解析
             _, error = parse_doctor_envelope(raw_output)
             if error is None:
                 detail = (r.error or raw_output or "").strip()
@@ -194,10 +201,23 @@ class OpenCLIService:
     def _command_error(self, result) -> str:
         """取一条可读的错误描述。
 
-        opencli 失败时把错误信封(JSON)打在 stdout 上，stderr 往往为空，
-        所以这里要同时考虑 stdout。
+        opencli 2.x 失败时把错误信封(JSON)打在 stdout 上，stderr 往往为空，
+        而 CommandResult.error 已经是按信封结构解析出的人读文案，
+        所以优先取 error，再退回 stderr / stdout。
         """
-        return (result.stderr or result.stdout or result.error or "").strip()
+        return (result.error or result.stderr or result.stdout or "").strip()
+
+    def _profile_use_summary(self, raw: str) -> str:
+        """`opencli profile use` 成功后的可读摘要。
+
+        新版 opencli 的成功输出也是 JSON 信封，直接打印原文不好读。
+        """
+        ok, data, _ = parse_envelope(raw)
+        if ok and isinstance(data, dict):
+            parts = [f"{key}: {value}" for key, value in data.items()]
+            if parts:
+                return " / ".join(parts)
+        return (raw or "").strip() or "done"
 
     def _log_doctor_evaluation(self, evaluation):
         """打印 doctor 自检结果。
