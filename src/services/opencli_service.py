@@ -10,6 +10,7 @@ from utils.opencli_doctor import (
     parse_profile_list_envelope,
 )
 from utils.opencli_envelope import parse_envelope
+from utils.version_text import clean_version, format_versions
 from opencli.IntelligentAgent import IntelligentCLIAgent
 from opencli.OpenCLITool import OpenCLITool
 from utils.logger import logger
@@ -76,9 +77,9 @@ class OpenCLIService:
             )
             exit(1)
         else:
-            log(f"[Service] node.js version: {r.stdout.strip()}")
+            log(f"[Service] node.js version: {clean_version(r.stdout)}")
 
-        # check opencli version
+        # 只检查 opencli 是否可用，版本统一在 doctor 结果里打印一次
         r = self._cli_tool._execute_opencli_command("--version")
         if not r.success:
             log(r.error, False)
@@ -87,8 +88,6 @@ class OpenCLIService:
                 False,
             )
             exit(1)
-        else:
-            log(f"[Service] opencli version: {r.stdout.strip()}")
 
         # 记录是否连接profile
         check_profile_connect = False
@@ -233,15 +232,9 @@ class OpenCLIService:
 
         details = evaluation.details
 
-        versions = []
-        if details.get("cliVersion"):
-            versions.append(f"cli v{details['cliVersion']}")
-        if details.get("daemonVersion"):
-            versions.append(f"daemon v{details['daemonVersion']}")
-        if details.get("extensionVersion"):
-            versions.append(f"extension v{details['extensionVersion']}")
-        if versions:
-            log(f"[Service] opencli version: {', '.join(versions)}", False)
+        version_text = format_versions(details)
+        if version_text:
+            log(f"[Service] opencli version: {version_text}", False)
 
         duration_ms = details.get("connectivityDurationMs")
         if duration_ms is not None and evaluation.checks.get("Connectivity"):
@@ -256,10 +249,10 @@ class OpenCLIService:
         if details.get("extensionFlaky"):
             warnings.append("extension connection is unstable")
         if details.get("extensionOutdated"):
-            current = details.get("extensionVersion")
-            latest = details.get("latestExtensionVersion")
+            current = clean_version(details.get("extensionVersion"))
+            latest = clean_version(details.get("latestExtensionVersion"))
             if current and latest:
-                warnings.append(f"extension update available: v{current} → v{latest}")
+                warnings.append(f"extension update available: {current} → {latest}")
             else:
                 warnings.append("extension is outdated")
         for warning in warnings:
@@ -278,15 +271,9 @@ class OpenCLIService:
             lines.append(f"  {component:<13}: {'OK' if status else 'FAILED'}")
 
         details = evaluation.details
-        versions = []
-        if details.get("cliVersion"):
-            versions.append(f"cli v{details['cliVersion']}")
-        if details.get("daemonVersion"):
-            versions.append(f"daemon v{details['daemonVersion']}")
-        if details.get("extensionVersion"):
-            versions.append(f"extension v{details['extensionVersion']}")
-        if versions:
-            lines.append(f"  {'version':<13}: {', '.join(versions)}")
+        version_text = format_versions(details)
+        if version_text:
+            lines.append(f"  {'version':<13}: {version_text}")
 
         for issue in evaluation.issues:
             lines.append(f"  issue         : {issue}")
